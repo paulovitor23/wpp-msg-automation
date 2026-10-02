@@ -6,3 +6,8 @@ data/
 *.eml
 !tests/fixtures/*.eml
 .DS_Store
+
+# Google OAuth files, even if accidentally saved at the project root
+credentials.json
+token.json
+client_secret*.json
