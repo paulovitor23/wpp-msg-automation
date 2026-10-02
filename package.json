@@ -1,0 +1,25 @@
+{
+  "name": "the-news-daily",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Extract the daily motivational message from the news newsletter.",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "extract": "node --import tsx src/main.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "mailparser": "^3.9.33"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.9.0",
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
