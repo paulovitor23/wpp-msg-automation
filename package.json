@@ -5,14 +5,15 @@
   "type": "module",
   "description": "Extract the daily motivational message from the news newsletter.",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.13"
   },
   "scripts": {
     "extract": "node --import tsx src/main.ts",
     "test": "node --import tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "gmail:auth": "node --import tsx src/gmail-cli.ts --auth",
-    "gmail:preview": "node --import tsx src/gmail-cli.ts"
+    "gmail:preview": "node --import tsx src/gmail-cli.ts",
+    "start": "node --import tsx src/schedule-cli.ts"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",

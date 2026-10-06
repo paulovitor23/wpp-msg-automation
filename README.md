@@ -7,7 +7,7 @@ Extrai localmente a mensagem motivacional de uma newsletter do **the news** salv
 
 ## Instalação
 
-Requer Node.js 22.12 ou superior e npm.
+Requer Node.js 22.13 ou superior e npm.
 
 ```sh
 npm ci
@@ -47,13 +47,13 @@ Os testes usam conteúdo sintético e verificam MIME multipart, base64, quoted-p
 
 ## Próximas etapas
 
-A integração Gmail em modo de prévia está implementada (instruções abaixo). Agendamento, histórico de envios e conexão WhatsApp continuam pendentes.
+A integração Gmail em modo de prévia está implementada (instruções abaixo). Agendamento com histórico de processamento está implementado. Histórico de envios e conexão WhatsApp continuam pendentes.
 
 Referências das bibliotecas: [MailParser](https://nodemailer.com/extras/mailparser) e [Cheerio](https://cheerio.js.org/docs/basics/loading/).
 
 ## Etapa 2 — Gmail em modo de prévia
 
-A integração lê o Gmail com a API oficial, busca mensagens recebidas no dia em `America/Sao_Paulo`, confere o endereço do remetente e aplica a validação da edição. Não marca mensagens como lidas nem envia mensagens. Cada execução faz uma única consulta completa (com paginação); o agendamento e o histórico continuam pendentes.
+A integração lê o Gmail com a API oficial, busca mensagens recebidas no dia em `America/Sao_Paulo`, confere o endereço do remetente e aplica a validação da edição. Não marca mensagens como lidas nem envia mensagens. Cada execução faz uma única consulta completa (com paginação); o agendamento com histórico usa um comando separado, descrito abaixo.
 
 ### Configuração do Google (uma vez)
 
@@ -92,3 +92,22 @@ Nenhum resultado é normal antes da entrega da newsletter. Formato inválido, du
 - Testes automatizados simulam a API. A validação ponta a ponta exige suas credenciais e consentimento, que não acompanham o repositório.
 
 Referências: [Quickstart oficial Gmail](https://developers.google.com/workspace/gmail/api/quickstart/nodejs), [filtros de busca](https://developers.google.com/workspace/gmail/api/guides/filtering) e [expiração de tokens OAuth](https://developers.google.com/identity/protocols/oauth2#expiration).
+
+## Etapa 3 — Agendamento diário
+
+```sh
+npm start
+```
+
+Com o Gmail já autorizado, mantenha esse comando rodando no computador ligado e acordado. Todos os dias verifica às **06:05, 06:10, 06:15, 06:20, 06:25 e 06:30**, usando `TIMEZONE` (padrão `America/Sao_Paulo`). Não há instalação de serviço nem início automático ao ligar o computador. Ctrl+C encerra o processo.
+
+- Ao encontrar e validar a edição, salva e mostra a prévia uma vez e encerra as buscas daquele dia.
+- E-mail ausente ou falha de consulta: tenta novamente no próximo horário previsto. Erros de autorização orientam executar `npm run gmail:auth`.
+- Iniciar às 06:08 aguarda 06:10. Iniciar dentro de um minuto programado executa a verificação se ela ainda não tiver ocorrido. Horários perdidos durante desligamento/suspensão não são acumulados nem executados fora da janela.
+- Depois do minuto 06:30, aguarda o dia seguinte. Uma consulta iniciada nesse minuto pode terminar depois dele.
+- O histórico fica em `data/history.sqlite` (SQLite nativo do Node, sem nova dependência), fora do Git. Guarda tentativas, identificador do Gmail, edição e texto validado, como **processado**, nunca como enviado.
+- Reiniciar preserva o histórico. Se houver encerramento abrupto durante uma consulta, o horário permanece como `checking` e a próxima tentativa acontece no próximo horário programado. Se isso acontecer na última tentativa, só volta no dia seguinte.
+- A gravação precede a exibição: se houver queda entre as duas, a edição permanece salva e não reaparece automaticamente. `npm run gmail:preview` permite consultá-la manualmente, sem alterar o histórico.
+- Esta versão é para uma única caixa/remetente/fuso por banco; não compartilhe o histórico entre configurações distintas.
+
+Os testes do agendamento usam relógio e caixa simulados, com um banco temporário; não acessam o Gmail real.
