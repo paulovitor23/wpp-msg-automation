@@ -10,14 +10,23 @@ import { openHistory } from './scheduler.js';
 
 let client: ReturnType<typeof createWhatsApp> | undefined;
 try {
-  const { positionals } = parseArgs({ allowPositionals: true });
+  const { positionals, values } = parseArgs({
+    allowPositionals: true,
+    options: { confirm: { type: 'boolean' } },
+  });
   const command = positionals[0];
   if (positionals.length !== 1 || !['auth', 'groups', 'send'].includes(command)) {
-    throw new Error('Use npm run whatsapp:auth, whatsapp:groups ou whatsapp:send.');
+    throw new Error('Use npm run whatsapp:auth, whatsapp:groups ou npm run whatsapp:send -- --confirm.');
   }
   const group = process.env.WHATSAPP_GROUP_ID ?? '';
   if (command === 'send' && !/^\d+(?:-\d+)?@g\.us$/.test(group)) {
     throw new Error('Configure WHATSAPP_GROUP_ID no .env com o ID mostrado por whatsapp:groups.');
+  }
+  if (command === 'send' && process.env.WHATSAPP_SEND_ENABLED !== 'true') {
+    throw new Error('Envio desabilitado. Defina WHATSAPP_SEND_ENABLED=true no .env após confirmar o consentimento dos participantes.');
+  }
+  if (command === 'send' && values.confirm !== true) {
+    throw new Error('Envio bloqueado por segurança. Para confirmar manualmente, use: npm run whatsapp:send -- --confirm');
   }
   await mkdir('data', { recursive: true, mode: 0o700 });
   if (command === 'send') {

@@ -130,15 +130,18 @@ Lista nomes e IDs dos grupos da conta conectada, sem enviar mensagens. Copie o I
 
 ```dotenv
 WHATSAPP_GROUP_ID=ID_DO_GRUPO@g.us
+WHATSAPP_SEND_ENABLED=false
 ```
 
 Use o ID completo mostrado pelo comando, sem acrescentar outro sufixo.
 
 ```sh
-npm run whatsapp:send
+npm run whatsapp:send -- --confirm
 ```
 
-**Esse comando envia de verdade**: busca e valida a newsletter de hoje no Gmail e envia título, frase e fonte ao grupo configurado. Não precisa esperar o horário do agendamento. A sessão salva é reutilizada; se necessário, aparece outro QR.
+Antes de enviar, confirme que todos os participantes aceitaram receber a mensagem e defina `WHATSAPP_SEND_ENABLED=true` no `.env`. O comando acima exige também a confirmação explícita `--confirm` e envia de verdade: busca e valida a newsletter de hoje no Gmail e envia título, frase e fonte ao grupo configurado. Não precisa esperar o horário do agendamento. A sessão salva é reutilizada; se necessário, aparece outro QR.
+
+O uso de `whatsapp-web.js` é não oficial e pode violar os termos do WhatsApp; não existe garantia de evitar bloqueio, especialmente usando um número pessoal. Para reduzir risco operacional, mantenha somente destinatários com consentimento, envie no máximo uma edição por dia, não faça reenvios automáticos, não use listas de contatos não autorizadas e interrompa o uso se houver aviso, desconexão ou reclamações. Para produção, prefira a WhatsApp Business Platform (API oficial), com modelos e opt-in apropriados.
 
 O histórico `deliveries` em `data/history.sqlite` é separado de `processed`: a prévia não impede o envio. Há bloqueio por grupo + edição e por grupo + e-mail. Antes da chamada de envio, grava `sending`; após retorno com identificador, grava `sent`. Isso não comprova entrega ou leitura dos participantes. Falha ou timeout de 60 segundos grava `uncertain`; queda abrupta pode deixar `sending`. Ambos bloqueiam repetição: confira manualmente o grupo antes de corrigir o registro. Não apague o banco para repetir um teste.
 
