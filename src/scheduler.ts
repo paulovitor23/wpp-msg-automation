@@ -6,7 +6,7 @@ import { formatMessage } from './delivery/format.js';
 
 export function scheduledSlot(now: DateTime): string | null {
   if (!now.isValid) throw new Error('Fuso ou horário inválido.');
-  return now.hour === 6 && now.minute >= 5 && now.minute <= 30 && now.minute % 5 === 0
+  return now.hour === 6 && now.minute === 10
     ? now.toFormat("yyyy-MM-dd'T'HH:mm") : null;
 }
 

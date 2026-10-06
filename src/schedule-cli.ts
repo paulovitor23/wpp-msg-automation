@@ -15,7 +15,7 @@ try {
   const shutdown = () => stop.abort();
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
-  console.log(`Agendamento ativo (${zone}): 06:05, 06:10, 06:15, 06:20, 06:25 e 06:30. Ctrl+C para parar.`);
+  console.log(`Agendamento ativo (${zone}): 06:10. Ctrl+C para parar.`);
   try {
     while (!stop.signal.aborted) {
       await checkScheduled(db, mailbox, DateTime.now().setZone(zone));

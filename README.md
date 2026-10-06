@@ -99,12 +99,11 @@ Referências: [Quickstart oficial Gmail](https://developers.google.com/workspace
 npm start
 ```
 
-Com o Gmail já autorizado, mantenha esse comando rodando no computador ligado e acordado. Todos os dias verifica às **06:05, 06:10, 06:15, 06:20, 06:25 e 06:30**, usando `TIMEZONE` (padrão `America/Sao_Paulo`). Não há instalação de serviço nem início automático ao ligar o computador. Ctrl+C encerra o processo.
+Com o Gmail já autorizado, mantenha esse comando rodando no computador ligado e acordado. Todos os dias faz uma única consulta às **06:10**, usando `TIMEZONE` (padrão `America/Sao_Paulo`). Não há instalação de serviço nem início automático ao ligar o computador. Ctrl+C encerra o processo.
 
 - Ao encontrar e validar a edição, salva e mostra a prévia uma vez e encerra as buscas daquele dia.
-- E-mail ausente ou falha de consulta: tenta novamente no próximo horário previsto. Erros de autorização orientam executar `npm run gmail:auth`.
-- Iniciar às 06:08 aguarda 06:10. Iniciar dentro de um minuto programado executa a verificação se ela ainda não tiver ocorrido. Horários perdidos durante desligamento/suspensão não são acumulados nem executados fora da janela.
-- Depois do minuto 06:30, aguarda o dia seguinte. Uma consulta iniciada nesse minuto pode terminar depois dele.
+- E-mail ausente ou falha de consulta: não há nova tentativa no mesmo dia. Erros de autorização orientam executar `npm run gmail:auth`.
+- Iniciar às 06:08 aguarda 06:10. Iniciar depois de 06:10 ou perder o horário durante desligamento/suspensão aguarda o dia seguinte; a consulta nunca é acumulada nem executada fora da janela.
 - O histórico fica em `data/history.sqlite` (SQLite nativo do Node, sem nova dependência), fora do Git. Guarda tentativas, identificador do Gmail, edição e texto validado, como **processado**, nunca como enviado.
 - Reiniciar preserva o histórico. Se houver encerramento abrupto durante uma consulta, o horário permanece como `checking` e a próxima tentativa acontece no próximo horário programado. Se isso acontecer na última tentativa, só volta no dia seguinte.
 - A gravação precede a exibição: se houver queda entre as duas, a edição permanece salva e não reaparece automaticamente. `npm run gmail:preview` permite consultá-la manualmente, sem alterar o histórico.
