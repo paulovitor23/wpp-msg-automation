@@ -13,7 +13,10 @@
     "typecheck": "tsc --noEmit",
     "gmail:auth": "node --import tsx src/gmail-cli.ts --auth",
     "gmail:preview": "node --import tsx src/gmail-cli.ts",
-    "start": "node --import tsx src/schedule-cli.ts"
+    "start": "node --import tsx src/schedule-cli.ts",
+    "whatsapp:auth": "node --import tsx src/whatsapp-cli.ts auth",
+    "whatsapp:groups": "node --import tsx src/whatsapp-cli.ts groups",
+    "whatsapp:send": "node --import tsx src/whatsapp-cli.ts send"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
@@ -22,12 +25,15 @@
     "dotenv": "^18.0.5",
     "google-auth-library": "^11.1.0",
     "luxon": "^3.7.2",
-    "mailparser": "^3.9.33"
+    "mailparser": "^3.9.33",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.7"
   },
   "devDependencies": {
     "@types/luxon": "^3.7.6",
     "@types/mailparser": "^3.9.0",
     "@types/node": "^26.6.4",
+    "@types/qrcode-terminal": "^0.12.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },

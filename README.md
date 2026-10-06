@@ -111,3 +111,39 @@ Com o Gmail já autorizado, mantenha esse comando rodando no computador ligado e
 - Esta versão é para uma única caixa/remetente/fuso por banco; não compartilhe o histórico entre configurações distintas.
 
 Os testes do agendamento usam relógio e caixa simulados, com um banco temporário; não acessam o Gmail real.
+
+## Etapa 4 — WhatsApp e envio manual
+
+A integração usa `whatsapp-web.js`, não oficial, sujeita a desconexões e bloqueio de conta. Use o número escolhido para o experimento. Execute um comando WhatsApp por vez, na raiz do projeto.
+
+```sh
+npm run whatsapp:auth
+```
+
+No celular, abra **WhatsApp → Aparelhos conectados → Conectar aparelho** e escaneie o QR do terminal. O comando encerra quando estiver pronto e preserva a sessão em `data/whatsapp`. A conexão tem limite de três minutos; se expirar, execute novamente. O cache também fica em `data`, fora do Git. Não compartilhe essa pasta.
+
+```sh
+npm run whatsapp:groups
+```
+
+Lista nomes e IDs dos grupos da conta conectada, sem enviar mensagens. Copie o ID do grupo desejado para o `.env` (crie a partir de `.env.example` se necessário):
+
+```dotenv
+WHATSAPP_GROUP_ID=ID_DO_GRUPO@g.us
+```
+
+Use o ID completo mostrado pelo comando, sem acrescentar outro sufixo.
+
+```sh
+npm run whatsapp:send
+```
+
+**Esse comando envia de verdade**: busca e valida a newsletter de hoje no Gmail e envia título, frase e fonte ao grupo configurado. Não precisa esperar o horário do agendamento. A sessão salva é reutilizada; se necessário, aparece outro QR.
+
+O histórico `deliveries` em `data/history.sqlite` é separado de `processed`: a prévia não impede o envio. Há bloqueio por grupo + edição e por grupo + e-mail. Antes da chamada de envio, grava `sending`; após retorno com identificador, grava `sent`. Isso não comprova entrega ou leitura dos participantes. Falha ou timeout de 60 segundos grava `uncertain`; queda abrupta pode deixar `sending`. Ambos bloqueiam repetição: confira manualmente o grupo antes de corrigir o registro. Não apague o banco para repetir um teste.
+
+`npm start` continua apenas extraindo e mostrando a prévia: integração do envio ao agendamento é a próxima etapa. A sessão real e o envio devem ser validados pelo usuário após escanear o QR; os testes automatizados simulam o transporte e não enviam mensagens.
+
+### Dependências do WhatsApp
+
+A auditoria após instalação reportou 9 alertas de severidade alta na árvore do Puppeteer (`basic-ftp` e `extract-zip` e dependentes). `npm audit fix` não resolveu sem propor downgrade do cliente WhatsApp; esse downgrade não foi aplicado. Esses alertas continuam pendentes; testes funcionais não demonstram sua ausência. O navegador mantém seu sandbox padrão.
