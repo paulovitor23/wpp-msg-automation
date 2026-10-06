@@ -99,7 +99,7 @@ Referências: [Quickstart oficial Gmail](https://developers.google.com/workspace
 npm start
 ```
 
-Com o Gmail já autorizado, mantenha esse comando rodando no computador ligado e acordado. Todos os dias faz uma única consulta às **06:10**, usando `TIMEZONE` (padrão `America/Sao_Paulo`). Não há instalação de serviço nem início automático ao ligar o computador. Ctrl+C encerra o processo.
+Com o Gmail já autorizado, mantenha esse comando rodando em um computador ligado e acordado. Todos os dias faz uma única consulta às **06:10**, usando `TIMEZONE` (padrão `America/Sao_Paulo`). O agendador apenas extrai e mostra a prévia; o envio do WhatsApp é manual.
 
 - Ao encontrar e validar a edição, salva e mostra a prévia uma vez e encerra as buscas daquele dia.
 - E-mail ausente ou falha de consulta: não há nova tentativa no mesmo dia. Erros de autorização orientam executar `npm run gmail:auth`.
@@ -143,8 +143,6 @@ Antes de enviar, confirme que todos os participantes aceitaram receber a mensage
 O uso de `whatsapp-web.js` é não oficial e pode violar os termos do WhatsApp; não existe garantia de evitar bloqueio, especialmente usando um número pessoal. Para reduzir risco operacional, mantenha somente destinatários com consentimento, envie no máximo uma edição por dia, não faça reenvios automáticos, não use listas de contatos não autorizadas e interrompa o uso se houver aviso, desconexão ou reclamações. Para produção, prefira a WhatsApp Business Platform (API oficial), com modelos e opt-in apropriados.
 
 O histórico `deliveries` em `data/history.sqlite` é separado de `processed`: a prévia não impede o envio. Há bloqueio por grupo + edição e por grupo + e-mail. Antes da chamada de envio, grava `sending`; após retorno com identificador, grava `sent`. Isso não comprova entrega ou leitura dos participantes. Falha ou timeout de 60 segundos grava `uncertain`; queda abrupta pode deixar `sending`. Ambos bloqueiam repetição: confira manualmente o grupo antes de corrigir o registro. Não apague o banco para repetir um teste.
-
-`npm start` continua apenas extraindo e mostrando a prévia: integração do envio ao agendamento é a próxima etapa. A sessão real e o envio devem ser validados pelo usuário após escanear o QR; os testes automatizados simulam o transporte e não enviam mensagens.
 
 ### Dependências do WhatsApp
 
