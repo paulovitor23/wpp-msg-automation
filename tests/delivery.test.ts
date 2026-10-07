@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { DateTime } from 'luxon';
 import { openHistory } from '../src/scheduler.js';
 import { sendOnce, checkSendAllowed } from '../src/delivery/send.js';
+import { checkWhatsAppSafety, validateMessageSize } from '../src/delivery/safety.js';
 
 test('daily global limit, 24h spacing, stale editions and persistent uncertainty', async () => {
   const db = openHistory(':memory:');
@@ -23,4 +24,36 @@ test('daily global limit, 24h spacing, stale editions and persistent uncertainty
     assert.throws(() => checkSendAllowed(db, later.plus({ days: 10 })), /incerta/);
     assert.equal(db.prepare("SELECT status FROM deliveries WHERE gmail_id='next'").get()?.status, 'uncertain');
   } finally { db.close(); }
+});
+
+test('requires explicit consent and enabled sending', () => {
+  const previousEnabled = process.env.WHATSAPP_SEND_ENABLED;
+  const previousConsent = process.env.WHATSAPP_CONSENT_CONFIRMED;
+  try {
+    process.env.WHATSAPP_SEND_ENABLED = 'true';
+    delete process.env.WHATSAPP_CONSENT_CONFIRMED;
+    assert.throws(() => checkWhatsAppSafety('123@g.us'), /opt-in/);
+    process.env.WHATSAPP_CONSENT_CONFIRMED = 'true';
+    assert.doesNotThrow(() => checkWhatsAppSafety('123@g.us'));
+    assert.throws(() => checkWhatsAppSafety('123@c.us'), /WHATSAPP_GROUP_ID/);
+  } finally {
+    if (previousEnabled === undefined) delete process.env.WHATSAPP_SEND_ENABLED;
+    else process.env.WHATSAPP_SEND_ENABLED = previousEnabled;
+    if (previousConsent === undefined) delete process.env.WHATSAPP_CONSENT_CONFIRMED;
+    else process.env.WHATSAPP_CONSENT_CONFIRMED = previousConsent;
+  }
+});
+
+test('enforces the configured WhatsApp message length', () => {
+  const previous = process.env.WHATSAPP_MAX_MESSAGE_LENGTH;
+  try {
+    process.env.WHATSAPP_MAX_MESSAGE_LENGTH = '10';
+    assert.doesNotThrow(() => validateMessageSize('0123456789'));
+    assert.throws(() => validateMessageSize('01234567890'), /excede/);
+    process.env.WHATSAPP_MAX_MESSAGE_LENGTH = '5000';
+    assert.throws(() => validateMessageSize('ok'), /entre 1 e 4096/);
+  } finally {
+    if (previous === undefined) delete process.env.WHATSAPP_MAX_MESSAGE_LENGTH;
+    else process.env.WHATSAPP_MAX_MESSAGE_LENGTH = previous;
+  }
 });

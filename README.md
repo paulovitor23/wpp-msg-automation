@@ -130,15 +130,26 @@ Lista nomes e IDs dos grupos da conta conectada, sem enviar mensagens. Copie o I
 ```dotenv
 WHATSAPP_GROUP_ID=ID_DO_GRUPO@g.us
 WHATSAPP_SEND_ENABLED=false
+WHATSAPP_CONSENT_CONFIRMED=false
+WHATSAPP_MAX_MESSAGE_LENGTH=4096
 ```
 
 Use o ID completo mostrado pelo comando, sem acrescentar outro sufixo.
+
+Antes do primeiro envio, confirme que todos os participantes autorizaram o recebimento e altere no `.env`:
+
+```dotenv
+WHATSAPP_CONSENT_CONFIRMED=true
+WHATSAPP_SEND_ENABLED=true
+```
+
+O limite de 4.096 caracteres é aplicado antes da chamada ao WhatsApp. Não há tentativas automáticas: qualquer envio com resultado incerto bloqueia novas tentativas até conferência manual.
 
 ```sh
 npm run whatsapp:send -- --confirm
 ```
 
-Antes de enviar, confirme que todos os participantes aceitaram receber a mensagem e defina `WHATSAPP_SEND_ENABLED=true` no `.env`. O comando acima exige também a confirmação explícita `--confirm` e envia de verdade: busca e valida a newsletter de hoje no Gmail e envia título, frase e fonte ao grupo configurado. Não precisa esperar o horário do agendamento. A sessão salva é reutilizada; se necessário, aparece outro QR.
+O comando acima exige também a confirmação explícita `--confirm` e envia de verdade: busca e valida a newsletter de hoje no Gmail e envia título, frase e fonte ao grupo configurado. Não precisa esperar o horário do agendamento. A sessão salva é reutilizada; se necessário, aparece outro QR.
 
 O uso de `whatsapp-web.js` é não oficial e pode violar os termos do WhatsApp; não existe garantia de evitar bloqueio, especialmente usando um número pessoal. Para reduzir risco operacional, mantenha somente destinatários com consentimento, envie no máximo uma edição por dia, não faça reenvios automáticos, não use listas de contatos não autorizadas e interrompa o uso se houver aviso, desconexão ou reclamações. Para produção, prefira a WhatsApp Business Platform (API oficial), com modelos e opt-in apropriados.
 
