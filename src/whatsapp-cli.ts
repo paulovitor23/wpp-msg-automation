@@ -7,6 +7,7 @@ import { authorize } from './gmail/auth.js';
 import { createMailbox, findNewsletter } from './gmail/client.js';
 import { gmailConfig } from './config.js';
 import { openHistory } from './scheduler.js';
+import { checkWhatsAppSafety } from './delivery/safety.js';
 
 let client: ReturnType<typeof createWhatsApp> | undefined;
 try {
@@ -19,12 +20,7 @@ try {
     throw new Error('Use npm run whatsapp:auth, whatsapp:groups ou npm run whatsapp:send -- --confirm.');
   }
   const group = process.env.WHATSAPP_GROUP_ID ?? '';
-  if (command === 'send' && !/^\d+(?:-\d+)?@g\.us$/.test(group)) {
-    throw new Error('Configure WHATSAPP_GROUP_ID no .env com o ID mostrado por whatsapp:groups.');
-  }
-  if (command === 'send' && process.env.WHATSAPP_SEND_ENABLED !== 'true') {
-    throw new Error('Envio desabilitado. Defina WHATSAPP_SEND_ENABLED=true no .env após confirmar o consentimento dos participantes.');
-  }
+  if (command === 'send') checkWhatsAppSafety(group);
   if (command === 'send' && values.confirm !== true) {
     throw new Error('Envio bloqueado por segurança. Para confirmar manualmente, use: npm run whatsapp:send -- --confirm');
   }

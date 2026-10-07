@@ -3,6 +3,7 @@ import type { Newsletter } from '../newsletter/types.js';
 import { validate } from '../newsletter/validate.js';
 import { DateTime } from 'luxon';
 import { formatMessage } from './format.js';
+import { validateMessageSize } from './safety.js';
 
 export function checkSendAllowed(db: DatabaseSync, now = DateTime.now().setZone(process.env.TIMEZONE ?? 'America/Sao_Paulo')) {
   if (!now.isValid) throw new Error('Fuso inválido.');
@@ -25,6 +26,8 @@ export async function sendOnce(db: DatabaseSync, group: string, gmailId: string,
   if (!/^\d+(?:-\d+)?@g\.us$/.test(group)) throw new Error('WHATSAPP_GROUP_ID inválido. Use whatsapp:groups.');
   if (!now.isValid) throw new Error('Fuso inválido.');
   validate(newsletter, now.toISODate()!);
+  const text = formatMessage(newsletter);
+  validateMessageSize(text);
   // Serialize the check and claim so simultaneous processes cannot bypass the limit.
   db.exec('BEGIN IMMEDIATE');
   try {
@@ -37,7 +40,7 @@ export async function sendOnce(db: DatabaseSync, group: string, gmailId: string,
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const id = await Promise.race([
-      send(formatMessage(newsletter)),
+      send(text),
       new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Tempo de envio esgotado.')), 60000); }),
     ]);
     if (!id) throw new Error('Envio sem identificador de confirmação.');
