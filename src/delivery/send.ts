@@ -3,7 +3,7 @@ import type { Newsletter } from '../newsletter/types.js';
 import { validate } from '../newsletter/validate.js';
 import { DateTime } from 'luxon';
 import { formatMessage } from './format.js';
-import { validateMessageSize } from './safety.js';
+import { validateGroupId, validateMessageSize } from './safety.js';
 
 export function checkSendAllowed(db: DatabaseSync, now = DateTime.now().setZone(process.env.TIMEZONE ?? 'America/Sao_Paulo')) {
   if (!now.isValid) throw new Error('Fuso inválido.');
@@ -23,7 +23,7 @@ export function checkSendAllowed(db: DatabaseSync, now = DateTime.now().setZone(
 export async function sendOnce(db: DatabaseSync, group: string, gmailId: string,
   newsletter: Newsletter, send: (text: string) => Promise<string>,
   now = DateTime.now().setZone(process.env.TIMEZONE ?? 'America/Sao_Paulo')): Promise<void> {
-  if (!/^\d+(?:-\d+)?@g\.us$/.test(group)) throw new Error('WHATSAPP_GROUP_ID inválido. Use whatsapp:groups.');
+  validateGroupId(group);
   if (!now.isValid) throw new Error('Fuso inválido.');
   validate(newsletter, now.toISODate()!);
   const text = formatMessage(newsletter);
