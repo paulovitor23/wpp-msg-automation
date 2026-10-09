@@ -32,7 +32,6 @@ try {
   const result = command === 'send'
     ? await findNewsletter(createMailbox(await authorize()), gmailConfig()) : null;
   if (command === 'send' && !result) throw new Error('Nenhuma newsletter válida encontrada para hoje.');
-  await mkdir('data', { recursive: true, mode: 0o700 });
   client = createWhatsApp();
   const shutdown = () => { void client?.destroy().finally(() => process.exit(130)); };
   process.once('SIGINT', shutdown);

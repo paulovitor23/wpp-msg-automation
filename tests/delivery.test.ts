@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DateTime } from 'luxon';
 import { openHistory } from '../src/scheduler.js';
 import { sendOnce, checkSendAllowed } from '../src/delivery/send.js';
-import { checkWhatsAppSafety, validateMessageSize } from '../src/delivery/safety.js';
+import { checkWhatsAppSafety, validateGroupId, validateMessageSize } from '../src/delivery/safety.js';
 
 test('daily global limit, 24h spacing, stale editions and persistent uncertainty', async () => {
   const db = openHistory(':memory:');
@@ -42,6 +42,13 @@ test('requires explicit consent and enabled sending', () => {
     if (previousConsent === undefined) delete process.env.WHATSAPP_CONSENT_CONFIRMED;
     else process.env.WHATSAPP_CONSENT_CONFIRMED = previousConsent;
   }
+});
+
+test('accepts only WhatsApp group identifiers', () => {
+  assert.doesNotThrow(() => validateGroupId('123@g.us'));
+  assert.doesNotThrow(() => validateGroupId('123-456@g.us'));
+  assert.throws(() => validateGroupId('123@c.us'), /WHATSAPP_GROUP_ID/);
+  assert.throws(() => validateGroupId(''), /WHATSAPP_GROUP_ID/);
 });
 
 test('enforces the configured WhatsApp message length', () => {
