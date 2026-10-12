@@ -158,3 +158,21 @@ O histórico `deliveries` em `data/history.sqlite` é separado de `processed`: a
 ### Dependências do WhatsApp
 
 A auditoria após instalação reportou 9 alertas de severidade alta na árvore do Puppeteer (`basic-ftp` e `extract-zip` e dependentes). `npm audit fix` não resolveu sem propor downgrade do cliente WhatsApp; esse downgrade não foi aplicado. Esses alertas continuam pendentes; testes funcionais não demonstram sua ausência. O navegador mantém seu sandbox padrão.
+
+## Página da frase do dia
+
+```sh
+npm run web
+```
+
+Abra http://127.0.0.1:3000 no navegador. A página consulta a edição de hoje no Gmail e exibe título, frase e data, com botões para copiar e atualizar. Há cache de 30 segundos; autentique com `npm run gmail:auth` antes do primeiro uso. Não envia ao WhatsApp e não altera os históricos de processamento/envio.
+
+Organização:
+
+- `frontend/index.html`: estrutura da página.
+- `frontend/styles.css`: visual responsivo inspirado na newsletter.
+- `frontend/app.js`: carregamento, atualização e cópia da frase.
+- `src/web/server.ts`: servidor local e endpoint `/api/phrase`, reutilizando a integração Gmail.
+- `tests/web.test.ts`: teste do endpoint e isolamento dos arquivos privados.
+
+Sem framework ou dependência nova. O servidor escuta apenas em `127.0.0.1` e serve uma lista explícita de arquivos públicos; credenciais nunca são servidas. É uma página pessoal local, não um serviço público com autenticação. A referência visual não implica afiliação ao the news.
