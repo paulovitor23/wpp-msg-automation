@@ -7,7 +7,7 @@ const scope = 'https://www.googleapis.com/auth/gmail.readonly';
 const credentialsPath = path.resolve('data/credentials.json');
 const tokenPath = path.resolve('data/token.json');
 
-export async function authorize(interactive = false): Promise<OAuth2Client> {
+export async function authorize(interactive = false, allowSend = false): Promise<OAuth2Client> {
   if (!interactive) {
     let saved;
     try { saved = JSON.parse(await readFile(tokenPath, 'utf8')); }
@@ -26,7 +26,7 @@ export async function authorize(interactive = false): Promise<OAuth2Client> {
     throw new Error('As credenciais devem ser do tipo Desktop, não Web.');
   }
   await chmod(credentialsPath, 0o600);
-  const client = await authenticate({ scopes: [scope], keyfilePath: credentialsPath });
+  const client = await authenticate({ scopes: allowSend ? [scope, 'https://www.googleapis.com/auth/gmail.send'] : [scope], keyfilePath: credentialsPath });
   if (!client.credentials.refresh_token) throw new Error('Google não forneceu acesso offline. Autorize novamente.');
   await mkdir(path.dirname(tokenPath), { recursive: true, mode: 0o700 });
   await writeFile(tokenPath, JSON.stringify({

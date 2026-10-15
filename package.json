@@ -17,7 +17,10 @@
     "whatsapp:auth": "node --import tsx src/whatsapp-cli.ts auth",
     "whatsapp:groups": "node --import tsx src/whatsapp-cli.ts groups",
     "whatsapp:send": "node --import tsx src/whatsapp-cli.ts send",
-    "web": "node --import tsx src/web/server.ts"
+    "web": "node --import tsx src/web/server.ts",
+    "email:auth": "node --import tsx src/email-cli.ts --auth",
+    "email:preview": "node --import tsx src/email-cli.ts --preview",
+    "email:send": "node --import tsx src/email-cli.ts"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",

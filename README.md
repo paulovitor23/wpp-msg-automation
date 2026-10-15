@@ -1,6 +1,6 @@
 # wpp-msg-automation
 
-Projeto pessoal em Node.js e TypeScript que extrai a frase inicial da newsletter **the news** no Gmail, mostra uma prévia no terminal ou em uma página local e permite enviá-la manualmente a um grupo do WhatsApp.
+Projeto pessoal em Node.js e TypeScript que extrai a frase inicial da newsletter **the news** no Gmail, mostra uma prévia no terminal ou em uma página local e permite enviá-la manualmente a um grupo do WhatsApp ou por e-mail individual.
 
 O front-end tem visual responsivo inspirado na newsletter. Este projeto não é afiliado ao the news. O agendador e a página não enviam mensagens ao WhatsApp.
 
@@ -33,6 +33,9 @@ Acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). Mantenha o terminal abert
 | `npm run whatsapp:auth` | Conecta o WhatsApp por QR code e salva a sessão. |
 | `npm run whatsapp:groups` | Lista nomes e IDs dos grupos. |
 | `npm run whatsapp:send -- --confirm` | Envia de verdade a edição de hoje ao grupo configurado. |
+| `npm run email:auth` | Autoriza leitura e envio no Gmail. |
+| `npm run email:preview` | Mostra a frase e os destinatários, sem enviar. |
+| `npm run email:send` | Envia a edição de hoje em e-mails individuais. |
 | `npm test` | Executa os testes automatizados. |
 | `npm run typecheck` | Verifica os tipos TypeScript. |
 
@@ -52,6 +55,7 @@ src/
   scheduler.ts           # Horário e histórico de processamento
   main.ts                # Comando de extração local
   gmail-cli.ts           # Comandos Gmail
+  email-cli.ts           # Prévia e envio individual de e-mail
   whatsapp-cli.ts        # Comandos WhatsApp
   schedule-cli.ts        # Execução contínua do agendador
  tests/                  # Testes com dados e serviços simulados
@@ -226,3 +230,34 @@ Os testes cobrem extração, consulta simulada do Gmail, agendamento, limites de
 - Envio ao WhatsApp permanece manual; ainda não está ligado ao agendador.
 - A página é local e não possui autenticação para publicação na internet.
 - O processo precisa permanecer aberto para servir a página ou executar o agendamento.
+
+## E-mail individual — Frase dos Agoniados
+
+A frase também pode ser enviada pela API oficial do Gmail, em uma mensagem separada para cada destinatário. Não usa Cc/Bcc nem compartilha os outros endereços. Usa como remetente a conta Google autorizada.
+
+Configure `EMAIL_RECIPIENTS` no `.env` com até três endereços separados por vírgulas. Endereços repetidos são removidos. O `.env.example` contém somente exemplos, não os destinatários reais.
+
+### Autorizar e conferir
+
+No Google Auth Platform, acrescente `https://www.googleapis.com/auth/gmail.send` aos escopos de acesso a dados do mesmo projeto. Então execute:
+
+```sh
+npm run email:auth
+npm run email:preview
+```
+
+`email:auth` pede leitura e envio no navegador e salva a autorização em `data/token.json`, reutilizando as credenciais Desktop existentes. Não altera nem apaga e-mails. A autorização anterior, apenas de leitura, não basta para enviar. `email:preview` consulta a frase de hoje e mostra o conteúdo e os destinatários sem enviar; funciona com permissão apenas de leitura.
+
+### Enviar
+
+```sh
+npm run email:send
+```
+
+Esse comando **envia de verdade**, individualmente, o título, a frase e a fonte da edição atual. O assunto é `Frase dos Agoniados | DD/MM/YYYY`. O conteúdo é texto simples UTF-8. A permissão de envio é verificada antes de registrar qualquer tentativa.
+
+O histórico fica na tabela `email_deliveries` do SQLite existente, separado das prévias e dos envios WhatsApp. Guarda remetente, destinatário, edição, e-mail de origem e resultado. Repetir o comando ignora destinatários já enviados ou com tentativa pendente/incerta; processa apenas os ainda não tentados.
+
+Em falha/timeout, o lote é interrompido e o destinatário atual fica `uncertain`. Confira a pasta Enviados antes de qualquer correção manual do histórico; o programa não repete chamadas de envio automaticamente. Uma queda pode deixar `sending`, também bloqueado para essa edição. `sent` significa aceito pela API, não leitura ou entrega garantida na caixa do destinatário.
+
+O agendador continua em modo de prévia: o envio automático de e-mail será conectado depois de validar o envio manual. A página web também não dispara e-mails. Os testes usam transporte simulado e não enviam mensagens reais.
