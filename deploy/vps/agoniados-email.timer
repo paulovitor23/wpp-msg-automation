@@ -1,0 +1,12 @@
+[Unit]
+Description=Enviar frase diariamente as 06h10 de Sao Paulo
+
+[Timer]
+OnCalendar=*-*-* 06:10:00 America/Sao_Paulo
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+Unit=agoniados-email.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=Frase dos Agoniados - pagina local
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=agoniados
+Group=agoniados
+WorkingDirectory=/opt/agoniados
+ExecStart=/usr/local/bin/node --import tsx src/web/server.ts
+Restart=on-failure
+RestartSec=10
+Environment=NODE_ENV=production
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/agoniados/data
+
+[Install]
+WantedBy=multi-user.target

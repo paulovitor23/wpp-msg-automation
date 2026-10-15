@@ -264,3 +264,7 @@ O histórico fica na tabela `email_deliveries` do SQLite existente, separado das
 Em falha/timeout, o lote é interrompido e o destinatário atual fica `uncertain`. Confira a pasta Enviados antes de qualquer correção manual do histórico; o programa não repete chamadas de envio automaticamente. Uma queda pode deixar `sending`, também bloqueado para essa edição. `sent` significa aceito pela API, não leitura ou entrega garantida na caixa do destinatário.
 
 O agendador (`npm start`) envia e-mails individuais às 06:10. A página web não dispara e-mails. Os testes usam transporte simulado e não enviam mensagens reais.
+
+## Hospedagem em VPS
+
+Os arquivos de serviço e o roteiro estão em [deploy/vps/README.md](deploy/vps/README.md). A preparação separa página e envio diário às 06:10, mantendo o SQLite em disco. As unidades ainda precisam ser instaladas e verificadas em uma VPS Linux; nenhum servidor é criado por esses arquivos.
