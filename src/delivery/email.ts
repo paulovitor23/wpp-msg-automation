@@ -1,3 +1,5 @@
+import { gmail } from '@googleapis/gmail';
+import type { OAuth2Client } from 'google-auth-library';
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { DateTime } from 'luxon';
@@ -64,4 +66,22 @@ export async function sendIndividualEmails(db: DatabaseSync, from: string, recip
     }
   }
   return results;
+}
+
+
+export async function prepareEmailSender(auth: OAuth2Client) {
+  const access = await auth.getAccessToken();
+  if (!access.token) throw new Error('Execute npm run email:auth para autorizar o envio.');
+  const info = await auth.getTokenInfo(access.token);
+  if (!info.scopes.includes('https://www.googleapis.com/auth/gmail.send')) {
+    throw new Error('Falta permissão de envio. Execute npm run email:auth.');
+  }
+  const api = gmail({ version: 'v1', auth });
+  const profile = await api.users.getProfile({ userId: 'me' }, { timeout: 30000 });
+  const from = profile.data.emailAddress;
+  if (!from) throw new Error('Não foi possível identificar o remetente.');
+  return { from, send: async (raw: string) => {
+    const response = await api.users.messages.send({ userId: 'me', requestBody: { raw } }, { timeout: 30000, retry: false });
+    return response.data.id ?? '';
+  } };
 }

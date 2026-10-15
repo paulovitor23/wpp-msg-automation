@@ -45,3 +45,30 @@ test('single daily slot, persisted processing and next day', async () => {
     await run('06:11:00','2026-10-08'); assert.equal(calls, 4);
   } finally { db.close(); await rm(dir, { recursive: true }); }
 });
+
+test('scheduled emails reuse previews, persist failures and do not run outside the slot', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'scheduled-email-'));
+  let db = openHistory(join(dir,'history.sqlite'));
+  const now = DateTime.fromISO('2026-10-14T06:10:00', { zone:'America/Sao_Paulo' });
+  const newsletter = { title:'um novo dia', message:'bom dia. cada pequeno passo conta para construir o futuro.', editionDate:'2026-10-14' };
+  let sent = 0;
+  const mailbox: Mailbox = { list: async () => { throw new Error('Cached preview should be reused'); }, get: async () => { throw new Error('unexpected'); } };
+  const deliver = async (result: { gmailId: string }) => { assert.equal(result.gmailId, 'cached'); sent++; };
+  try {
+    db.prepare('INSERT INTO processed(edition_date,gmail_id,newsletter) VALUES (?,?,?)').run(newsletter.editionDate,'cached',JSON.stringify(newsletter));
+    db.prepare("INSERT INTO attempts(slot,status) VALUES (?, 'processed')").run('2026-10-14T06:10');
+    await checkScheduled(db,mailbox,now.minus({minutes:1}),()=>{},deliver);
+    assert.equal(sent,0);
+    await checkScheduled(db,mailbox,now,()=>{},deliver);
+    assert.equal(sent,1);
+    db.close(); db = openHistory(join(dir,'history.sqlite'));
+    await checkScheduled(db,mailbox,now,()=>{},deliver);
+    assert.equal(sent,1);
+    const tomorrow = now.plus({days:1});
+    db.prepare('INSERT INTO processed(edition_date,gmail_id,newsletter) VALUES (?,?,?)').run('2026-10-15','next',JSON.stringify({...newsletter,editionDate:'2026-10-15'}));
+    await checkScheduled(db,mailbox,tomorrow,()=>{},async()=>{throw new Error('offline');});
+    assert.equal(db.prepare("SELECT status FROM attempts WHERE slot='email:2026-10-15T06:10'").get()?.status,'email_error');
+    await checkScheduled(db,mailbox,tomorrow,()=>{},async()=>{sent++;});
+    assert.equal(sent,1);
+  } finally { db.close(); await rm(dir,{recursive:true}); }
+});

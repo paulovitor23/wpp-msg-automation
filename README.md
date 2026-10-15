@@ -2,7 +2,7 @@
 
 Projeto pessoal em Node.js e TypeScript que extrai a frase inicial da newsletter **the news** no Gmail, mostra uma prévia no terminal ou em uma página local e permite enviá-la manualmente a um grupo do WhatsApp ou por e-mail individual.
 
-O front-end tem visual responsivo inspirado na newsletter. Este projeto não é afiliado ao the news. O agendador e a página não enviam mensagens ao WhatsApp.
+O front-end tem visual responsivo inspirado na newsletter. Este projeto não é afiliado ao the news. O agendador envia e-mails individuais; a página não envia mensagens e o envio ao WhatsApp continua manual.
 
 ## Instalação
 
@@ -29,7 +29,7 @@ Acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). Mantenha o terminal abert
 | `npm run extract -- "/caminho/newsletter.eml"` | Extrai uma frase de um arquivo local, sem acessar contas. |
 | `npm run gmail:auth` | Autoriza acesso de leitura ao Gmail pelo navegador. |
 | `npm run gmail:preview` | Busca a edição de hoje e mostra a frase no terminal. |
-| `npm start` | Mantém o agendamento de prévia ativo. |
+| `npm start` | Busca a frase e envia e-mails individuais às 06:10. |
 | `npm run whatsapp:auth` | Conecta o WhatsApp por QR code e salva a sessão. |
 | `npm run whatsapp:groups` | Lista nomes e IDs dos grupos. |
 | `npm run whatsapp:send -- --confirm` | Envia de verdade a edição de hoje ao grupo configurado. |
@@ -140,18 +140,21 @@ Referências: [Quickstart oficial Gmail](https://developers.google.com/workspace
 
 ## Agendamento e histórico
 
+Autorize o Gmail para leitura e envio uma vez (`npm run email:auth`), configure `EMAIL_RECIPIENTS` e execute:
+
 ```sh
 npm start
 ```
 
-**O código atual consulta uma vez ao dia, durante o minuto 06:10**, no fuso `TIMEZONE` (padrão `America/Sao_Paulo`). O computador precisa estar ligado, acordado e com o processo rodando. Não instala serviço nem inicia automaticamente com o sistema.
+**Envia e-mails reais individualmente às 06:10**, no fuso `TIMEZONE` (padrão `America/Sao_Paulo`). Na inicialização, verifica os destinatários, a conta remetente e a permissão de envio. O computador precisa estar ligado, acordado e com o processo rodando. Ctrl+C encerra; não instala um serviço nem inicia automaticamente com o sistema.
 
-- Se iniciado durante o minuto 06:10, consulta se aquele horário ainda não foi registrado. Fora desse minuto, aguarda o próximo horário diário.
-- Não recupera horários perdidos e não repete a busca no mesmo dia após ausência de e-mail ou erro.
-- Salva tentativas e edições em `data/history.sqlite`. Uma prévia é **processada**, não **enviada**; os controles são separados.
-- Reiniciar preserva o histórico. Uma queda durante a consulta pode deixar `checking`; a próxima tentativa é no dia seguinte.
-- O texto é salvo antes de aparecer no terminal. Se houver queda nesse intervalo, consulte manualmente com `gmail:preview`.
-- Use uma única caixa, remetente e fuso por banco.
+- Durante o minuto 06:10, busca e valida a edição do dia, ou reutiliza a frase já validada no histórico. Uma prévia anterior não bloqueia o envio.
+- Cada pessoa recebe uma mensagem separada. O histórico por remetente, destinatário e edição impede repetir envios manuais ou agendados já registrados.
+- Fora desse minuto, aguarda o próximo dia; não recupera horários perdidos. Se o e-mail não chegou, a validação falhou ou houve erro de envio, não tenta novamente automaticamente naquele dia.
+- Falha durante o lote pausa os destinatários restantes. Para recuperação manual, confira Enviados e use `npm run email:send`: destinatários já enviados ou com resultado incerto são ignorados.
+- As tentativas agendadas de e-mail usam o prefixo `email:` na tabela `attempts`. Uma queda abrupta pode deixar uma tentativa pendente; reiniciar não repete aquele horário.
+- A tabela `processed` guarda a frase; `email_deliveries` guarda o envio individual. Dados ficam em `data/history.sqlite`, fora do Git. Use uma única caixa, remetente e fuso por banco.
+- Mudanças no `.env` ou reautorização exigem reiniciar `npm start`.
 
 ## WhatsApp e envio manual
 
@@ -260,4 +263,4 @@ O histórico fica na tabela `email_deliveries` do SQLite existente, separado das
 
 Em falha/timeout, o lote é interrompido e o destinatário atual fica `uncertain`. Confira a pasta Enviados antes de qualquer correção manual do histórico; o programa não repete chamadas de envio automaticamente. Uma queda pode deixar `sending`, também bloqueado para essa edição. `sent` significa aceito pela API, não leitura ou entrega garantida na caixa do destinatário.
 
-O agendador continua em modo de prévia: o envio automático de e-mail será conectado depois de validar o envio manual. A página web também não dispara e-mails. Os testes usam transporte simulado e não enviam mensagens reais.
+O agendador (`npm start`) envia e-mails individuais às 06:10. A página web não dispara e-mails. Os testes usam transporte simulado e não enviam mensagens reais.
