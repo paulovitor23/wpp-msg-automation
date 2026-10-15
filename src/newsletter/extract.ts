@@ -26,13 +26,18 @@ export function extractHtml(html: string, expectedDate?: string): Newsletter {
   const $ = load(html);
   $('script, style, head, noscript').remove();
   $('br').replaceWith(' ');
-  // Only accept the observed sequence: title, paragraph, separator, edition date.
+  // The newsletter places its date either before the title or after the introduction.
   const blocks = $('h1,h2,h3,h4,h5,h6,p').toArray()
     .map(element => ({ tag: element.tagName, text: clean($(element).text()) }))
     .filter(block => block.text.length > 0);
   const dateIndex = blocks.findIndex(block => datePattern.test(block.text));
   if (dateIndex < 0) throw new ExtractionError('Data da edição não encontrada.');
-  const intro = blocks.slice(0, dateIndex);
+  const dateFirst = /^h[1-6]$/u.test(blocks[dateIndex + 1]?.tag ?? '')
+    && /^bom dia\b/iu.test(blocks[dateIndex + 2]?.text ?? '');
+  if (dateFirst && !/^[.…\s]+$/u.test(blocks[dateIndex + 3]?.text ?? '')) {
+    throw new ExtractionError('Separador ausente após o parágrafo inicial.');
+  }
+  const intro = dateFirst ? blocks.slice(dateIndex + 1, dateIndex + 3) : blocks.slice(0, dateIndex);
   const candidates = intro.map((block, index) => ({ ...block, index }))
     .filter(block => /^bom dia\b/iu.test(block.text));
   if (candidates.length !== 1) {

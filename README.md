@@ -88,7 +88,7 @@ npm run extract -- "/caminho/newsletter.eml" --expected-date 2026-10-02
 
 Arquivos antigos são aceitos; a comparação da data é opcional na extração local. A saída JSON contém `title`, `message` e `editionDate`. Use `npm run --silent extract -- ... --json` para omitir o cabeçalho do npm.
 
-O parser exige título HTML, um único parágrafo iniciado por “bom dia” antes da data e apenas separadores entre o parágrafo e a data. Valida a data, título de até 160 caracteres e parágrafo de 30 a 1.500 caracteres. Rejeita seções posteriores como QUICK TAKES, HTML ausente e arquivos acima de 10 MB. Mudanças no layout podem exigir ajustes; o programa recusa conteúdo inesperado em vez de adivinhar.
+O parser aceita a data antes do título ou após o parágrafo inicial. Exige título HTML e parágrafo iniciado por “bom dia”. Quando a data vem antes, exige um separador logo após a frase; quando vem depois, aceita apenas separadores entre o parágrafo e a data. Valida a data, título de até 160 caracteres e parágrafo de 30 a 1.500 caracteres. Rejeita seções posteriores como QUICK TAKES, HTML ausente e arquivos acima de 10 MB. Mudanças no layout podem exigir ajustes; o programa recusa conteúdo inesperado em vez de adivinhar.
 
 ## Gmail
 

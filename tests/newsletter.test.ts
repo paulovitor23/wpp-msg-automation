@@ -48,3 +48,13 @@ test('decodes quoted-printable UTF-8 HTML', async () => {
 test('rejects plain text instead of guessing a structure', async () => {
   await assert.rejects(extractEml(Buffer.from('Content-Type: text/plain\r\n\r\nbom dia.')), /sem HTML/u);
 });
+
+
+test('accepts date before title and greeting, stopping at the separator', () => {
+  const current = `<p>QUARTA-FEIRA, 14 DE OUTUBRO DE 2026</p><h5>um novo olhar</h5><p>${message}</p><p>….</p><p>Conteúdo promocional</p><h6>ECONOMIA</h6>`;
+  assert.deepEqual(extractHtml(current, '2026-10-14'), {
+    title: 'um novo olhar', message, editionDate: '2026-10-14',
+  });
+  assert.throws(() => extractHtml(current, '2026-10-15'), /data esperada/);
+  assert.throws(() => extractHtml(current.replace('<p>….</p>', '<p>Outro parágrafo</p>')), /Separador/);
+});
