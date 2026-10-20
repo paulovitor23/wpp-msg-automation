@@ -29,12 +29,13 @@ Acesse [http://127.0.0.1:3000](http://127.0.0.1:3000). Mantenha o terminal abert
 | `npm run extract -- "/caminho/newsletter.eml"` | Extrai uma frase de um arquivo local, sem acessar contas. |
 | `npm run gmail:auth` | Autoriza acesso de leitura ao Gmail pelo navegador. |
 | `npm run gmail:preview` | Busca a edição de hoje e mostra a frase no terminal. |
-| `npm start` | Busca a frase e envia e-mails individuais às 06:10. |
+| `npm start` | Busca a frase entre 06:10 e 06:30, a cada cinco minutos até sucesso, e envia e-mails individuais. |
 | `npm run whatsapp:auth` | Conecta o WhatsApp por QR code e salva a sessão. |
 | `npm run whatsapp:groups` | Lista nomes e IDs dos grupos. |
 | `npm run whatsapp:send -- --confirm` | Envia de verdade a edição de hoje ao grupo configurado. |
 | `npm run email:auth` | Autoriza leitura e envio no Gmail. |
 | `npm run email:preview` | Mostra a frase e os destinatários, sem enviar. |
+| `npm run email:status` | Mostra tentativas e envios de hoje, sem acessar o Gmail. |
 | `npm run email:send` | Envia a edição de hoje em e-mails individuais. |
 | `npm test` | Executa os testes automatizados. |
 | `npm run typecheck` | Verifica os tipos TypeScript. |
@@ -146,11 +147,11 @@ Autorize o Gmail para leitura e envio uma vez (`npm run email:auth`), configure 
 npm start
 ```
 
-**Envia e-mails reais individualmente às 06:10**, no fuso `TIMEZONE` (padrão `America/Sao_Paulo`). Na inicialização, verifica os destinatários, a conta remetente e a permissão de envio. O computador precisa estar ligado, acordado e com o processo rodando. Ctrl+C encerra; não instala um serviço nem inicia automaticamente com o sistema.
+**Envia e-mails reais individualmente, com buscas às 06:10, 06:15, 06:20, 06:25 e 06:30 até sucesso**, no fuso `TIMEZONE` (padrão `America/Sao_Paulo`). Na inicialização, verifica os destinatários, a conta remetente e a permissão de envio. O computador precisa estar ligado, acordado e com o processo rodando. Ctrl+C encerra; não instala um serviço nem inicia automaticamente com o sistema.
 
-- Durante o minuto 06:10, busca e valida a edição do dia, ou reutiliza a frase já validada no histórico. Uma prévia anterior não bloqueia o envio.
+- Durante cada minuto agendado, busca e valida a edição do dia, ou reutiliza a frase já validada no histórico. Uma prévia anterior não bloqueia o envio.
 - Cada pessoa recebe uma mensagem separada. O histórico por remetente, destinatário e edição impede repetir envios manuais ou agendados já registrados.
-- Fora desse minuto, aguarda o próximo dia; não recupera horários perdidos. Se o e-mail não chegou, a validação falhou ou houve erro de envio, não tenta novamente automaticamente naquele dia.
+- Fora desses minutos, aguarda; não recupera horários perdidos. Se o e-mail não chegou ou houve falha temporária de consulta (rede, HTTP 429 ou 5xx), tenta no próximo horário até 06:30. Sucesso, falha de autorização/permissão, formato inválido, erro inesperado ou envio incompleto encerram as tentativas automáticas do dia.
 - Falha durante o lote pausa os destinatários restantes. Para recuperação manual, confira Enviados e use `npm run email:send`: destinatários já enviados ou com resultado incerto são ignorados.
 - As tentativas agendadas de e-mail usam o prefixo `email:` na tabela `attempts`. Uma queda abrupta pode deixar uma tentativa pendente; reiniciar não repete aquele horário.
 - A tabela `processed` guarda a frase; `email_deliveries` guarda o envio individual. Dados ficam em `data/history.sqlite`, fora do Git. Use uma única caixa, remetente e fuso por banco.
@@ -263,8 +264,22 @@ O histórico fica na tabela `email_deliveries` do SQLite existente, separado das
 
 Em falha/timeout, o lote é interrompido e o destinatário atual fica `uncertain`. Confira a pasta Enviados antes de qualquer correção manual do histórico; o programa não repete chamadas de envio automaticamente. Uma queda pode deixar `sending`, também bloqueado para essa edição. `sent` significa aceito pela API, não leitura ou entrega garantida na caixa do destinatário.
 
-O agendador (`npm start`) envia e-mails individuais às 06:10. A página web não dispara e-mails. Os testes usam transporte simulado e não enviam mensagens reais.
+O agendador (`npm start`) começa às 06:10 e repete somente buscas sem resultado ou com falha temporária até 06:30. A página web não dispara e-mails. Os testes usam transporte simulado e não enviam mensagens reais.
 
 ## Hospedagem em VPS
 
 Os arquivos de serviço e o roteiro estão em [deploy/vps/README.md](deploy/vps/README.md). A preparação separa página e envio diário às 06:10, mantendo o SQLite em disco. As unidades ainda precisam ser instaladas e verificadas em uma VPS Linux; nenhum servidor é criado por esses arquivos.
+
+## Diagnóstico de falhas
+
+Execute `npm run email:status` para consultar as tentativas e os envios de hoje no banco local. Não acessa o Gmail nem envia mensagens. Os detalhes também aparecem no terminal; não há notificação externa de falhas.
+
+- `not_found`: aguarda a próxima busca; às 06:30 registra encerramento da janela.
+- `temporary_error`: falha de rede, limite HTTP 429 ou erro HTTP 5xx durante a consulta; permite a próxima busca.
+- `auth_error` / `permission_error`: confira a autorização com `npm run email:auth`, permissões e configuração do Google; reinicie o processo. Após corrigir, use `email:preview` e, se necessário, `email:send` para recuperar o dia manualmente.
+- `format_error`: formato/data inválido ou edições ambíguas. Confira `gmail:preview`; não envia conteúdo duvidoso.
+- `error`: falha inesperada; exige diagnóstico antes de tentar novamente.
+- `email_error`, `sending` ou `uncertain`: envio incompleto ou resultado desconhecido. Confira Enviados; não apague o banco para forçar reenvio. A recuperação manual ignora destinatários já tentados.
+- `checking` ou `processed` deixados por uma queda também bloqueiam novas tentativas automáticas no dia, por segurança.
+
+Falhas na inicialização ainda encerram o processo com código 1; corrija a configuração e reinicie. A janela de novas buscas aplica-se a `npm start`. O timer VPS existente continua executando o comando de envio uma vez às 06:10; não instala essa política de repetição.
