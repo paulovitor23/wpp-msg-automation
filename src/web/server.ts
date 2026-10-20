@@ -1,3 +1,4 @@
+import { describeFailure } from '../failures.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -30,9 +31,9 @@ export function createWebServer(getPhrase: () => Promise<Newsletter | null>) {
       const content = await readFile(new URL(`../../frontend/${asset[0]}`, import.meta.url));
       res.setHeader('Content-Type',asset[1]);
       res.end(content);
-    } catch {
+    } catch (error) {
       res.writeHead(503, {'Content-Type':'application/json'});
-      res.end(JSON.stringify({ error:'Confira a conexão e a autorização do Gmail (npm run gmail:auth) e tente novamente.' }));
+      res.end(JSON.stringify({ error: describeFailure(error).message, code: describeFailure(error).code }));
     }
   });
 }
