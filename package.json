@@ -20,7 +20,8 @@
     "web": "node --import tsx src/web/server.ts",
     "email:auth": "node --import tsx src/email-cli.ts --auth",
     "email:preview": "node --import tsx src/email-cli.ts --preview",
-    "email:send": "node --import tsx src/email-cli.ts"
+    "email:send": "node --import tsx src/email-cli.ts",
+    "email:status": "node --import tsx src/status-cli.ts"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
