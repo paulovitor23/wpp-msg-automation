@@ -7,10 +7,10 @@ import { DateTime } from 'luxon';
 import { checkScheduled, openHistory, scheduledSlot } from '../src/scheduler.js';
 import type { Mailbox } from '../src/gmail/client.js';
 
-test('single daily slot, persisted processing and next day', async () => {
+test('bounded daily slots, persisted processing and next day', async () => {
   const at = (time: string, date = '2026-10-05') => DateTime.fromISO(`${date}T${time}`, { zone: 'America/Sao_Paulo' });
   for (let minute = 0; minute < 60; minute++) {
-    assert.equal(Boolean(scheduledSlot(at(`06:${String(minute).padStart(2,'0')}:00`))), minute === 10);
+    assert.equal(Boolean(scheduledSlot(at(`06:${String(minute).padStart(2,'0')}:00`))), minute >= 10 && minute <= 30 && minute % 5 === 0);
   }
   assert.equal(scheduledSlot(at('05:05:00')), null);
   assert.equal(scheduledSlot(at('07:05:00')), null);
@@ -71,4 +71,43 @@ test('scheduled emails reuse previews, persist failures and do not run outside t
     await checkScheduled(db,mailbox,tomorrow,()=>{},async()=>{sent++;});
     assert.equal(sent,1);
   } finally { db.close(); await rm(dir,{recursive:true}); }
+});
+
+
+test('late newsletter and temporary failure retry, terminal failures and success stop the day', async () => {
+  const now = DateTime.fromISO('2026-10-14T06:10:00', { zone:'America/Sao_Paulo' });
+  for (const failure of [null, {code:'ECONNRESET'}, {response:{status:401}}, {response:{status:403}}, new Error('secret')]) {
+    const db = openHistory(':memory:');
+    let calls = 0;
+    const mailbox: Mailbox = { list: async () => { calls++; if(failure) throw failure; return {ids:[]}; }, get: async()=>{throw new Error('unexpected');} };
+    try {
+      await checkScheduled(db,mailbox,now,()=>{},async()=>{});
+      await checkScheduled(db,mailbox,now.plus({seconds:20}),()=>{},async()=>{});
+      await checkScheduled(db,mailbox,now.plus({minutes:5}),()=>{},async()=>{});
+      assert.equal(calls, !failure || 'code' in failure ? 2 : 1);
+      if (!failure || 'code' in failure) {
+        const phrase = {title:'um novo dia',message:'bom dia. cada pequeno passo conta para construir o futuro.',editionDate:'2026-10-14'};
+        db.prepare('INSERT INTO processed(edition_date,gmail_id,newsletter) VALUES (?,?,?)').run(phrase.editionDate,'cached',JSON.stringify(phrase));
+        let sends=0;
+        await checkScheduled(db,mailbox,now.plus({minutes:10}),()=>{},async()=>{sends++;});
+        await checkScheduled(db,mailbox,now.plus({minutes:15}),()=>{},async()=>{sends++;});
+        assert.equal(sends,1);
+      }
+    } finally {db.close();}
+  }
+});
+
+test('window ends at 06:30 and uncertain delivery blocks subsequent slots', async () => {
+  const now = DateTime.fromISO('2026-10-14T06:10:00', {zone:'America/Sao_Paulo'});
+  const db = openHistory(':memory:');
+  let calls=0;
+  const mailbox: Mailbox = {list:async()=>{calls++;return {ids:[]};},get:async()=>{throw new Error('unexpected');}};
+  try {
+    for (let minutes=0; minutes<=25; minutes+=5) await checkScheduled(db,mailbox,now.plus({minutes}),()=>{},async()=>{});
+    assert.equal(calls,5);
+    assert.match(String(db.prepare('SELECT detail FROM attempts ORDER BY slot DESC LIMIT 1').get()?.detail),/Janela encerrada/);
+    db.prepare("UPDATE attempts SET status='email_error' WHERE slot=?").run('email:2026-10-14T06:10');
+    await checkScheduled(db,mailbox,now.plus({minutes:15}),()=>{},async()=>{throw new Error('should not send');});
+    assert.equal(calls,5);
+  } finally {db.close();}
 });

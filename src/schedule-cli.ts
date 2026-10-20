@@ -19,7 +19,7 @@ try {
   const shutdown = () => stop.abort();
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);
-  console.log(`Agendamento ativo (${zone}): 06:10, envio individual por e-mail. Ctrl+C para parar.`);
+  console.log(`Agendamento ativo (${zone}): 06:10–06:30 a cada cinco minutos até sucesso, envio individual por e-mail. Ctrl+C para parar.`);
   try {
     while (!stop.signal.aborted) {
       await checkScheduled(db, mailbox, DateTime.now().setZone(zone), console.log, async result => {

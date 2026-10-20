@@ -1,3 +1,4 @@
+import { describeFailure } from './failures.js';
 import { DateTime } from 'luxon';
 import { DatabaseSync } from 'node:sqlite';
 import { gmailConfig } from './config.js';
@@ -8,7 +9,7 @@ import { formatMessage } from './delivery/format.js';
 
 export function scheduledSlot(now: DateTime): string | null {
   if (!now.isValid) throw new Error('Fuso ou horário inválido.');
-  return now.hour === 6 && now.minute === 10
+  return now.hour === 6 && now.minute >= 10 && now.minute <= 30 && now.minute % 5 === 0
     ? now.toFormat("yyyy-MM-dd'T'HH:mm") : null;
 }
 
@@ -33,6 +34,11 @@ export async function checkScheduled(db: DatabaseSync, mailbox: Mailbox, now: Da
   if (!scheduled) return;
   const slot = deliver ? `email:${scheduled}` : scheduled;
   const date = now.toISODate()!;
+  // A claimed delivery (including a crash) or terminal failure blocks later automatic slots.
+  const prefix = deliver ? `email:${date}T` : `${date}T`;
+  const previous = db.prepare('SELECT status FROM attempts WHERE slot LIKE ?').all(`${prefix}%`);
+  if (previous.some(row => !['not_found', 'temporary_error'].includes(String(row.status)))) return;
+  const retryNote = now.minute < 30 ? ' Nova busca em cinco minutos, se o processo continuar ativo.' : ' Janela encerrada; nenhuma nova tentativa automática hoje.';
   const cached = db.prepare('SELECT gmail_id,newsletter FROM processed WHERE edition_date = ?').get(date);
   if (cached && !deliver) return;
   // Claim each slot durably, including across restarts or two running copies.
@@ -42,20 +48,16 @@ export async function checkScheduled(db: DatabaseSync, mailbox: Mailbox, now: Da
     result = cached ? { gmailId: String(cached.gmail_id), newsletter: validate(JSON.parse(String(cached.newsletter)), date) }
       : await findNewsletter(mailbox, gmailConfig(date));
   } catch (error) {
-    const e = error as { code?: unknown; message?: string; response?: { data?: { error?: string } } };
-    const auth = e.code === 401 || e.response?.data?.error === 'invalid_grant' || e.message === 'invalid_grant';
-    const detail = auth ? 'Autorização expirada/revogada: execute npm run email:auth.'
-      : e.message?.includes('validação') || e.message?.includes('Mais de uma newsletter')
-        ? 'Formato/data inválido ou edições ambíguas; confira com gmail:preview.'
-        : 'Falha ao consultar Gmail; confira conexão e execute gmail:preview.';
+    const failure = describeFailure(error);
+    const detail = failure.message + (failure.retryable ? retryNote : ' Requer intervenção; sem nova tentativa automática hoje.');
     db.prepare('UPDATE attempts SET status=?,detail=?,updated_at=CURRENT_TIMESTAMP WHERE slot=?')
-      .run(auth ? 'auth_error' : 'error', detail, slot);
+      .run(failure.code, detail, slot);
     log(`[${slot}] ${detail}`);
     return;
   }
   if (!result) {
-    db.prepare("UPDATE attempts SET status='not_found',updated_at=CURRENT_TIMESTAMP WHERE slot=?").run(slot);
-    log(`[${slot}] E-mail ainda não chegou. Última tentativa do dia.`);
+    db.prepare("UPDATE attempts SET status='not_found',detail=?,updated_at=CURRENT_TIMESTAMP WHERE slot=?").run(`E-mail ainda não chegou.${retryNote}`, slot);
+    log(`[${slot}] E-mail ainda não chegou.${retryNote}`);
     return;
   }
   // Persist before displaying; a crash cannot cause the preview to be processed twice.
@@ -69,7 +71,7 @@ export async function checkScheduled(db: DatabaseSync, mailbox: Mailbox, now: Da
       db.prepare("UPDATE attempts SET status='emails_sent',updated_at=CURRENT_TIMESTAMP WHERE slot=?").run(slot);
       log(`[${slot}] E-mails enviados ou já registrados como enviados.`);
     } catch {
-      db.prepare("UPDATE attempts SET status='email_error',updated_at=CURRENT_TIMESTAMP WHERE slot=?").run(slot);
+      db.prepare("UPDATE attempts SET status='email_error',detail='Envio incompleto. Confira Enviados e email:status antes de recuperar manualmente.',updated_at=CURRENT_TIMESTAMP WHERE slot=?").run(slot);
       log(`[${slot}] Envio incompleto. Confira Enviados e o histórico antes de executar email:send. Sem repetição automática hoje.`);
     }
   }
