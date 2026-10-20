@@ -1,3 +1,4 @@
+import { NewsletterFormatError } from '../failures.js';
 import { gmail } from '@googleapis/gmail';
 import type { OAuth2Client } from 'google-auth-library';
 import { simpleParser } from 'mailparser';
@@ -60,8 +61,8 @@ export async function findNewsletter(mailbox: Mailbox, config: {
     if (page.nextPageToken && page.nextPageToken === pageToken) throw new Error('Paginação inválida no Gmail.');
     pageToken = page.nextPageToken;
   } while (pageToken);
-  if (valid.length > 1) throw new Error('Mais de uma newsletter válida para o dia. Confira as edições antes de continuar.');
+  if (valid.length > 1) throw new NewsletterFormatError('Mais de uma newsletter válida para o dia. Confira as edições antes de continuar.');
   if (valid.length === 1) return valid[0];
-  if (rejected) throw new Error(`${rejected} e-mail(s) do remetente encontrados, mas nenhum passou na validação de formato e data.`);
+  if (rejected) throw new NewsletterFormatError(`${rejected} e-mail(s) do remetente encontrados, mas nenhum passou na validação de formato e data.`);
   return null;
 }
