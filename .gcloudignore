@@ -1,0 +1,10 @@
+**
+!package.json
+!package-lock.json
+!.dockerignore
+!src/
+!src/**
+!deploy/
+!deploy/google-cloud/
+!deploy/google-cloud/Dockerfile
+!deploy/google-cloud/cloudbuild.yaml

@@ -283,3 +283,14 @@ Execute `npm run email:status` para consultar as tentativas e os envios de hoje 
 - `checking` ou `processed` deixados por uma queda também bloqueiam novas tentativas automáticas no dia, por segurança.
 
 Falhas na inicialização ainda encerram o processo com código 1; corrija a configuração e reinicie. A janela de novas buscas aplica-se a `npm start`. O timer VPS existente continua executando o comando de envio uma vez às 06:10; não instala essa política de repetição.
+
+## Execução sob demanda no Google Cloud
+
+A implementação está em `src/cloud-cli.ts`, `src/jobs/daily-email.ts` e `src/storage/firestore.ts`. O Cloud Run Job executa uma tentativa e encerra; o Cloud Scheduler dispara às 06:10, 06:15, 06:20, 06:25 e 06:30. Frases, tentativas e reservas de envio ficam no Firestore, com proteção transacional contra execuções concorrentes. O fluxo local continua usando SQLite.
+
+- `npm run cloud:preview`: verifica o Gmail e a permissão de envio, sem enviar nem escrever no Firestore.
+- `npm run cloud:run`: executa o job; exige `CLOUD_EMAIL_ENABLED=true` e `GOOGLE_CLOUD_PROJECT`. Dentro da janela, envia e-mails reais.
+- `GMAIL_TOKEN_PATH`: caminho do token montado pelo Secret Manager; o padrão local continua `data/token.json`.
+- `CLOUD_JOB_KEY`: identificador fixo da automação, padrão `daily-email`; não altere para contornar bloqueios.
+
+Veja [deploy/google-cloud/README.md](deploy/google-cloud/README.md) para configuração, custos, publicação e recuperação de falhas. Nenhum recurso é criado automaticamente. Não rode envio local e nuvem simultaneamente: seus históricos são independentes. A página ainda é local.
