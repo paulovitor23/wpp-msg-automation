@@ -1,3 +1,4 @@
+import { sqliteEmailStore, type EmailStore } from '../storage/email-store.js';
 import { gmail } from '@googleapis/gmail';
 import type { OAuth2Client } from 'google-auth-library';
 import { randomUUID } from 'node:crypto';
@@ -28,38 +29,27 @@ export function composeEmail(from: string, to: string, newsletter: Newsletter): 
   ].join('\r\n')).toString('base64url');
 }
 
-export async function sendIndividualEmails(db: DatabaseSync, from: string, recipients: string[],
+export async function sendEmails(store: EmailStore, from: string, recipients: string[],
   gmailId: string, newsletter: Newsletter, send: (raw: string) => Promise<string>,
   expectedDate = DateTime.now().setZone(process.env.TIMEZONE ?? 'America/Sao_Paulo').toISODate()!) {
   validate(newsletter, expectedDate);
   const emails = emailRecipients(recipients.join(','));
   // Prepare all content before claiming any delivery, so invalid input cannot cause partial sends.
   const messages = emails.map(to => ({ to, raw: composeEmail(from, to, newsletter) }));
-  db.exec(`CREATE TABLE IF NOT EXISTS email_deliveries (
-    sender TEXT NOT NULL, recipient TEXT NOT NULL, edition_date TEXT NOT NULL,
-    gmail_id TEXT NOT NULL, status TEXT NOT NULL, message_id TEXT,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(sender,recipient,edition_date), UNIQUE(sender,recipient,gmail_id)
-  )`);
   const results: { recipient: string; status: string }[] = [];
   for (const { to, raw } of messages) {
-    const claimed = db.prepare(`INSERT OR IGNORE INTO email_deliveries(sender,recipient,edition_date,gmail_id,status)
-      VALUES (?,?,?,?,'sending')`).run(from, to, newsletter.editionDate, gmailId);
-    if (!claimed.changes) {
-      const row = db.prepare('SELECT status FROM email_deliveries WHERE sender=? AND recipient=? AND (edition_date=? OR gmail_id=?)')
-        .get(from, to, newsletter.editionDate, gmailId);
-      results.push({ recipient: to, status: `skipped:${row?.status}` });
+    const existing = await store.claim(from, to, newsletter.editionDate, gmailId);
+    if (existing !== null) {
+      results.push({ recipient: to, status: `skipped:${existing}` });
       continue;
     }
     try {
       const id = await send(raw);
       if (!id) throw new Error('Gmail não confirmou o envio.');
-      db.prepare("UPDATE email_deliveries SET status='sent',message_id=?,updated_at=CURRENT_TIMESTAMP WHERE sender=? AND recipient=? AND edition_date=?")
-        .run(id, from, to, newsletter.editionDate);
+      await store.finish(from, to, newsletter.editionDate, 'sent', id);
       results.push({ recipient: to, status: 'sent' });
     } catch {
-      db.prepare("UPDATE email_deliveries SET status='uncertain',updated_at=CURRENT_TIMESTAMP WHERE sender=? AND recipient=? AND edition_date=?")
-        .run(from, to, newsletter.editionDate);
+      await store.finish(from, to, newsletter.editionDate, 'uncertain');
       results.push({ recipient: to, status: 'uncertain' });
       // Stop this batch on failure. A later run skips attempted recipients and handles only untouched ones.
       break;
@@ -84,4 +74,10 @@ export async function prepareEmailSender(auth: OAuth2Client) {
     const response = await api.users.messages.send({ userId: 'me', requestBody: { raw } }, { timeout: 30000, retry: false });
     return response.data.id ?? '';
   } };
+}
+
+// Preserve the local CLI and scheduler API while sharing the delivery logic with the cloud job.
+export async function sendIndividualEmails(db: DatabaseSync, from: string, recipients: string[],
+  gmailId: string, newsletter: Newsletter, send: (raw: string) => Promise<string>, expectedDate?: string) {
+  return sendEmails(sqliteEmailStore(db), from, recipients, gmailId, newsletter, send, expectedDate);
 }
