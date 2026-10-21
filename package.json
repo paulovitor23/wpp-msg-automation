@@ -21,9 +21,12 @@
     "email:auth": "node --import tsx src/email-cli.ts --auth",
     "email:preview": "node --import tsx src/email-cli.ts --preview",
     "email:send": "node --import tsx src/email-cli.ts",
-    "email:status": "node --import tsx src/status-cli.ts"
+    "email:status": "node --import tsx src/status-cli.ts",
+    "cloud:run": "node --import tsx src/cloud-cli.ts",
+    "cloud:preview": "node --import tsx src/cloud-cli.ts --preview"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^9.3.1",
     "@google-cloud/local-auth": "^3.0.1",
     "@googleapis/gmail": "^22.0.1",
     "cheerio": "^1.2.0",
