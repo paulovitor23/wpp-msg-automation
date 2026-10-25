@@ -20,3 +20,17 @@ test('web serves phrase, protects local files and hides provider errors', async 
     assert.doesNotMatch(await response.text(), /secret-token/);
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 });
+
+test('private web requires authentication for assets and phrase API', async()=>{
+  let reads=0;
+  const server=createWebServer(async()=>{reads++;return null;},'long-test-password');
+  await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const base=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
+  try {
+    for(const route of ['/','/app.js','/api/phrase']) assert.equal((await fetch(base+route)).status,401);
+    assert.equal((await fetch(base+'/api/phrase',{headers:{authorization:'Basic invalid'}})).status,401);
+    assert.equal(reads,0);
+    const response=await fetch(base+'/api/phrase',{headers:{authorization:`Basic ${Buffer.from('agoniados:long-test-password').toString('base64')}`}});
+    assert.equal(response.status,200);assert.equal(reads,1);
+  } finally {server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});

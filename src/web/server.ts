@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { Firestore } from '@google-cloud/firestore';
 import { openHistory } from '../scheduler.js';
@@ -17,11 +18,19 @@ const assets = new Map([
   ['/styles.css', ['styles.css','text/css; charset=utf-8']],
   ['/app.js', ['app.js','text/javascript; charset=utf-8']],
 ]);
-export function createWebServer(getPhrase: () => Promise<Newsletter | null>) {
+export function createWebServer(getPhrase: () => Promise<Newsletter | null>, password?: string) {
   return createServer(async (req, res) => {
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Content-Security-Policy', "default-src 'self'; frame-ancestors 'none'; base-uri 'none'");
+    if (password) {
+      const expected = Buffer.from(`Basic ${Buffer.from(`agoniados:${password}`).toString('base64')}`);
+      const received = Buffer.from(req.headers.authorization ?? '');
+      if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Frase dos Agoniados", charset="UTF-8"' }).end('Acesso restrito.');
+        return;
+      }
+    }
     if (req.method !== 'GET') { res.writeHead(405).end(); return; }
     try {
       if (req.url === '/api/phrase') {
@@ -42,8 +51,11 @@ export function createWebServer(getPhrase: () => Promise<Newsletter | null>) {
   });
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const host = '127.0.0.1';
-  const port = 3000;
+  const host = process.env.WEB_HOST ?? '127.0.0.1';
+  const port = Number(process.env.PORT ?? 3000);
+  const password = process.env.WEB_PASSWORD;
+  if (host !== '127.0.0.1' && (!password || password.length < 16)) throw new Error('Configure WEB_PASSWORD com pelo menos 16 caracteres para acesso remoto.');
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT inválida.');
   const source = process.env.PHRASE_SOURCE ?? 'gmail';
   if (!['gmail','firestore'].includes(source)) throw new Error('PHRASE_SOURCE inválida.');
   const today = () => gmailConfig().editionDate;
@@ -72,7 +84,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       void cached.then(() => { expires = Date.now() + 30000; }, () => { expires = 0; });
     }
     return cached;
-  });
+  }, password);
   let closing = false;
   const shutdown = () => {
     if (closing) return;
