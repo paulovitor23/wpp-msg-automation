@@ -1,11 +1,37 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffcc00"><title>Frase dos Agoniados</title><link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script></head>
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#faf8f2"><meta name="description" content="Uma frase, uma pausa e um novo olhar para começar o dia.">
+  <title>Frase dos Agoniados</title>
+  <link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script>
+</head>
 <body>
-<header class="nav"><a class="brand" href="/" aria-label="Uma boa manhã, início"><span class="mini-sun" aria-hidden="true">✳</span> uma boa manhã<span class="brand-dot">.</span></a><span class="nav-note">um pequeno ritual, todos os dias</span></header>
-<main>
-<section class="banner" aria-label="Frase dos Agoniados"><div class="banner-top"><span>UMA PAUSA PARA COMEÇAR BEM</span><span>☀ &nbsp; EDIÇÃO DIÁRIA</span></div><div class="wordmark"><span class="sun" aria-hidden="true"></span><span>Frase dos<br>Agoniados</span></div><div class="banner-bottom"><span>café na mão. ideias na cabeça.</span><span>bom dia pra você ↗</span></div></section>
-<section class="reading" aria-labelledby="title" aria-busy="true" id="reading"><div class="edition"><span class="line"></span><time id="date">FRASE DO DIA</time><span class="line"></span></div><p class="eyebrow">PARA LEVAR COM VOCÊ HOJE</p><h1 id="title">uma boa manhã começa<br>com uma boa ideia.</h1><p id="message" class="message">Buscando a inspiração de hoje…</p><p id="status" class="status" role="status" aria-live="polite"></p><div class="dots" aria-hidden="true">••••</div><div class="actions"><button id="copy" disabled>Copiar frase <span aria-hidden="true">↗</span></button><button id="reload" class="secondary">Atualizar</button></div></section>
-<aside class="note"><span class="note-icon" aria-hidden="true">✳</span><div><strong>poucas palavras. um novo olhar.</strong><p>Uma ideia para acompanhar o café e inspirar o resto do dia.</p></div></aside>
-</main><footer><span>feito para começar o dia com intenção.</span><span>Conteúdo: the news · Projeto pessoal, não oficial.</span></footer>
-</body></html>
+  <a class="skip-link" href="#reading">Ir para a frase</a>
+  <header class="nav">
+    <a class="brand" href="/"><span class="sun" aria-hidden="true">☀</span> Frase dos Agoniados</a>
+    <span class="nav-label">uma boa manhã começa aqui</span>
+    <div class="friends" aria-label="Feito para nós três"><span>PV</span><span>EB</span><span>AF</span></div>
+  </header>
+  <main>
+    <section class="reading" aria-labelledby="title" aria-busy="true" id="reading">
+      <div class="orbit" aria-hidden="true"></div>
+      <p class="edition"><span aria-hidden="true">●</span> <time id="date">FRASE DO DIA</time></p>
+      <p class="eyebrow">UMA PAUSA PARA COMEÇAR BEM</p>
+      <h1 id="title">Poucas palavras.<br>Um novo olhar.</h1>
+      <p id="message" class="message">Buscando a inspiração de hoje…</p>
+      <p class="source">Uma reflexão para acompanhar o seu café. <span>Fonte: the news.</span></p>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div class="actions">
+        <button id="copy" disabled><span aria-hidden="true">▢</span> Copiar frase</button>
+        <button id="reload" class="secondary">Atualizar <span aria-hidden="true">↻</span></button>
+      </div>
+    </section>
+    <aside class="note">
+      <div><p class="eyebrow">PARA CONVERSAR ENTRE NÓS</p><h2>Qual é a única coisa que faria seu dia valer a pena hoje?</h2></div>
+      <span class="note-sun" aria-hidden="true">✳</span>
+    </aside>
+  </main>
+  <footer><span>Menos pressa. Mais intenção.</span><span>Feito para nós três.<small>Projeto pessoal, sem afiliação ao the news.</small></span></footer>
+</body>
+</html>

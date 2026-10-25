@@ -11,11 +11,13 @@ async function load() {
   copy.disabled = true;
   current = undefined;
   reading.setAttribute('aria-busy', 'true');
-  status.textContent = 'Buscando a frase no seu e-mail…';
+  status.textContent = 'Buscando a frase…';
   try {
-    const response = await fetch('/api/phrase');
+    const response = await fetch('/api/phrase', { signal: AbortSignal.timeout(15000) });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Não foi possível carregar a frase.');
+    if (!response.ok) throw new Error(['auth_error', 'permission_error'].includes(data.code)
+      ? 'A conexão com a newsletter precisa de atenção. Avise o responsável pela página.'
+      : 'Não foi possível atualizar a frase. Tente novamente em instantes.');
     if (!data) {
       title.textContent = 'a inspiração já vem.';
       message.textContent = 'A edição de hoje ainda não foi encontrada. Volte daqui a pouco.';
@@ -27,12 +29,15 @@ async function load() {
       date.textContent = new Intl.DateTimeFormat('pt-BR', {dateStyle:'full',timeZone:'UTC'}).format(new Date(`${data.editionDate}T12:00:00Z`));
       copy.disabled = false;
     }
-    status.textContent = '';
+    status.textContent = data?.notice ?? '';
+    if (data) date.setAttribute('datetime', data.editionDate);
+    else date.removeAttribute('datetime');
   } catch (error) {
     title.textContent = 'uma pequena pausa.';
     message.textContent = 'Não conseguimos buscar a frase agora.';
     date.textContent = 'FRASE DO DIA';
-    status.textContent = error.message;
+    date.removeAttribute('datetime');
+    status.textContent = error.name === 'TimeoutError' ? 'A busca demorou mais que o esperado. Tente atualizar em instantes.' : error.message;
   } finally {
     reload.disabled = false;
     reading.setAttribute('aria-busy', 'false');
