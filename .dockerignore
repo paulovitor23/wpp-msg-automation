@@ -6,3 +6,5 @@
 !deploy/
 !deploy/google-cloud/
 !deploy/google-cloud/Dockerfile
+!frontend/
+!frontend/**

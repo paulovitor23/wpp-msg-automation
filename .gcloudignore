@@ -8,3 +8,5 @@
 !deploy/google-cloud/
 !deploy/google-cloud/Dockerfile
 !deploy/google-cloud/cloudbuild.yaml
+!frontend/
+!frontend/**
