@@ -2,7 +2,7 @@
 
 Projeto pessoal em Node.js e TypeScript que extrai a frase inicial da newsletter **the news** no Gmail, mostra uma prévia no terminal ou em uma página local e permite enviá-la manualmente a um grupo do WhatsApp ou por e-mail individual.
 
-O front-end tem visual responsivo inspirado na newsletter. Este projeto não é afiliado ao the news. O agendador envia e-mails individuais; a página não envia mensagens e o envio ao WhatsApp continua manual.
+O front-end tem visual editorial responsivo próprio, com a marca Frase dos Agoniados. Este projeto não é afiliado ao the news. O agendador envia e-mails individuais; a página não envia mensagens e o envio ao WhatsApp continua manual.
 
 ## Instalação
 
@@ -71,7 +71,7 @@ src/
 npm run web
 ```
 
-Abra http://127.0.0.1:3000 no navegador. A página consulta a edição de hoje no Gmail e exibe título, frase e data, com botões para copiar e atualizar. Há cache de 30 segundos; autentique com `npm run gmail:auth` antes do primeiro uso. Não envia ao WhatsApp e não altera os históricos de processamento/envio.
+Abra http://127.0.0.1:3000 no navegador. A página exibe título, frase e data, com botões para copiar e atualizar. No modo local, reutiliza a edição salva no SQLite ou busca no Gmail e salva o resultado. Sem edição nova, mostra a última frase disponível com data e aviso. Há cache de 30 segundos; autentique com `npm run gmail:auth` antes da primeira busca. A página não envia mensagens nem cria registros de envio.
 
 Organização:
 
@@ -81,7 +81,7 @@ Organização:
 - `src/web/server.ts`: servidor local e endpoint `/api/phrase`, reutilizando a integração Gmail.
 - `tests/web.test.ts`: teste do endpoint e isolamento dos arquivos privados.
 
-Sem framework ou dependência nova. O servidor escuta apenas em `127.0.0.1` e serve uma lista explícita de arquivos públicos; credenciais nunca são servidas. É uma página pessoal local, não um serviço público com autenticação. A referência visual não implica afiliação ao the news.
+Sem framework ou dependência nova. O servidor escuta apenas em `127.0.0.1` e serve uma lista explícita de arquivos públicos; credenciais nunca são servidas. O padrão é acesso local; acesso remoto exige `WEB_PASSWORD` com no mínimo 16 caracteres e HTTPS na hospedagem. A referência visual não implica afiliação ao the news.
 
 ## Extração local e validação
 
@@ -204,7 +204,7 @@ O histórico `deliveries` em `data/history.sqlite` é separado de `processed`: a
 
 ### Dependências do WhatsApp
 
-A auditoria após instalação reportou 9 alertas de severidade alta na árvore do Puppeteer (`basic-ftp` e `extract-zip` e dependentes). `npm audit fix` não resolveu sem propor downgrade do cliente WhatsApp; esse downgrade não foi aplicado. Esses alertas continuam pendentes; testes funcionais não demonstram sua ausência. O navegador mantém seu sandbox padrão.
+A auditoria em 25/10/2026, após aplicar correções compatíveis, ainda reportou 11 alertas de severidade alta na árvore do WhatsApp/Puppeteer (`basic-ftp`, `extract-zip`, `zod` e dependentes). A correção automática restante propõe downgrade do cliente WhatsApp, que não foi aplicado. O Dockerfile remove WhatsApp e QR code da imagem de e-mail/página; a integração opcional local ainda exige revisão antes de uso. O navegador mantém seu sandbox padrão.
 
 
 ## Configuração e dados privados
@@ -232,7 +232,7 @@ Os testes cobrem extração, consulta simulada do Gmail, agendamento, limites de
 ## Limites atuais
 
 - Envio ao WhatsApp permanece manual; ainda não está ligado ao agendador.
-- A página é local e não possui autenticação para publicação na internet.
+- A publicação precisa ser configurada; a página já suporta Firestore e senha compartilhada para acesso remoto.
 - O processo precisa permanecer aberto para servir a página ou executar o agendamento.
 
 ## E-mail individual — Frase dos Agoniados
@@ -293,4 +293,18 @@ A implementação está em `src/cloud-cli.ts`, `src/jobs/daily-email.ts` e `src/
 - `GMAIL_TOKEN_PATH`: caminho do token montado pelo Secret Manager; o padrão local continua `data/token.json`.
 - `CLOUD_JOB_KEY`: identificador fixo da automação, padrão `daily-email`; não altere para contornar bloqueios.
 
-Veja [deploy/google-cloud/README.md](deploy/google-cloud/README.md) para configuração, custos, publicação e recuperação de falhas. Nenhum recurso é criado automaticamente. Não rode envio local e nuvem simultaneamente: seus históricos são independentes. A página ainda é local.
+Veja [deploy/google-cloud/README.md](deploy/google-cloud/README.md) para configuração, custos, publicação e recuperação de falhas. Nenhum recurso é criado automaticamente. Não rode envio local e nuvem simultaneamente: seus históricos são independentes. A página pode usar `PHRASE_SOURCE=firestore`; a publicação e o acesso por senha estão documentados no mesmo roteiro.
+
+
+## Página final e validação
+
+O visual Frase dos Agoniados foi atualizado para leitura em desktop/celular. A página mostra explicitamente quando a frase é de uma edição anterior. O modo local preserva frases no SQLite; o modo Firestore consulta somente frases salvas, sem acessar Gmail. A pergunta de reflexão no rodapé é fixa, não é extraída da newsletter.
+
+| Variável | Uso |
+| --- | --- |
+| `PHRASE_SOURCE` | `gmail` (padrão local) ou `firestore`. |
+| `WEB_HOST` | `127.0.0.1` por padrão; na hospedagem, `0.0.0.0`. |
+| `PORT` | `3000` por padrão; Cloud Run fornece a porta do serviço. |
+| `WEB_PASSWORD` | Senha compartilhada; obrigatória com 16+ caracteres para acesso remoto. Usuário: `agoniados`. |
+
+A integração contínua em `.github/workflows/checks.yml` executa testes e TypeScript no Node 24, sem contas reais. Testes simulados cobrem histórico, concorrência, falhas, autenticação da página e proteção dos dados privados. A configuração de Google Cloud, Docker e entrega real precisa ser validada separadamente conforme o checklist de implantação.

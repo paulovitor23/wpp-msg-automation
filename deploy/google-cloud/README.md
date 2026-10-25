@@ -133,3 +133,49 @@ docker build -f deploy/google-cloud/Dockerfile -t agoniados-email .
 `npm run cloud:preview` acessa o Gmail autorizado, mas não envia. `npm run cloud:run` exige habilitação explícita, projeto e credenciais de aplicação Google para o Firestore; dentro da janela, **envia e-mails reais**.
 
 Referências: [agendamento de jobs](https://docs.cloud.google.com/run/docs/execute/jobs-on-schedule), [secrets](https://docs.cloud.google.com/run/docs/configuring/jobs/secrets), [transações Firestore](https://googleapis.dev/nodejs/firestore/latest/Transaction.html).
+
+## Página para os três participantes
+
+A mesma imagem inclui a página. Um **serviço Cloud Run separado** lê as frases do Firestore, sem token do Gmail e sem permissão de envio. Se a edição de hoje não estiver disponível, mostra a última frase encontrada entre os 30 registros diários mais recentes, com data e aviso. Não fornece documentos de envio ou endereços pela API.
+
+Crie uma identidade somente de leitura e um secret com senha aleatória. Execute a geração de senha em seu computador e guarde a senha em um gerenciador para compartilhar diretamente com os dois participantes (não no Git):
+
+```sh
+gcloud iam service-accounts create agoniados-web
+export WEB_ACCOUNT="agoniados-web@$PROJECT_ID.iam.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$WEB_ACCOUNT" --role=roles/datastore.viewer
+# Dentro da raiz do projeto; data/ é ignorada pelo Git.
+mkdir -p data
+(umask 077; openssl rand -hex 24 | tr -d '\n' > data/web-password.txt)
+gcloud secrets create agoniados-web-password --replication-policy=automatic --data-file=data/web-password.txt
+gcloud secrets add-iam-policy-binding agoniados-web-password --member="serviceAccount:$WEB_ACCOUNT" --role=roles/secretmanager.secretAccessor
+```
+
+A senha protege **todos** os arquivos e a API da página com HTTP Basic sobre HTTPS. O usuário é `agoniados`. A senha precisa ter pelo menos 16 caracteres. É uma senha compartilhada; não há contas individuais, recuperação ou botão de logout (o navegador mantém a sessão Basic).
+
+Depois de reconstruir a imagem com o front-end, publique:
+
+```sh
+gcloud run deploy agoniados-web --image="$IMAGE" --region="$REGION" --service-account="$WEB_ACCOUNT" --command=node --args=--import,tsx,src/web/server.ts --port=8080 --min-instances=0 --max-instances=1 --memory=512Mi --cpu=1 --concurrency=20 --timeout=60s --set-env-vars="PHRASE_SOURCE=firestore,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,CLOUD_JOB_KEY=daily-email,WEB_HOST=0.0.0.0,TIMEZONE=America/Sao_Paulo" --set-secrets=WEB_PASSWORD=agoniados-web-password:1 --allow-unauthenticated
+```
+
+`--allow-unauthenticated` libera a entrada no Cloud Run para que o navegador possa abrir o formulário de senha; **a aplicação continua exigindo usuário e senha**. Use somente a URL HTTPS retornada. O servidor recusa iniciar com acesso remoto sem senha válida. Não monte o token Gmail nesse serviço.
+
+A conta `datastore.viewer` pode ler todo o Firestore desse projeto; o código limita a resposta pública às frases. Use projeto dedicado. A página faz cache de 30 segundos; o botão Atualizar respeita esse cache. Sem visitas, o serviço pode reduzir a zero instâncias.
+
+## Checklist de ativação
+
+- [ ] Projeto/faturamento, APIs, Firestore e contas de serviço configurados.
+- [ ] OAuth adequado para operação contínua e secrets publicados.
+- [ ] Imagem construída com sucesso e prévia do Gmail validada.
+- [ ] Transações verificadas em Firestore de teste/emulador antes de envio real (os testes do repositório simulam o SDK).
+- [ ] Agendador local/VPS parado; transição em um dia ainda não enviado.
+- [ ] Job habilitado e Scheduler criado.
+- [ ] Primeiro envio recebido individualmente pelos três e registrado no Firestore.
+- [ ] Nova execução ignora o dia já enviado.
+- [ ] Página HTTPS abre com senha e mostra a edição correta; sem senha, API retorna 401.
+- [ ] Alerta no Cloud Logging criado e recebimento da notificação validado.
+
+A validação local não comprova permissões IAM, faturamento, entrega real, construção da imagem ou disponibilidade do serviço publicado. Esses itens exigem a sua configuração Google e verificação após publicação.
+
+A imagem remove `whatsapp-web.js` e `qrcode-terminal` após a instalação; o código de envio e a página não os utilizam. Os alertas pendentes da árvore WhatsApp continuam restritos à instalação local.
