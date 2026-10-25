@@ -1,3 +1,7 @@
+import { mkdir } from 'node:fs/promises';
+import { Firestore } from '@google-cloud/firestore';
+import { openHistory } from '../scheduler.js';
+import { localPhraseReader, firestorePhraseReader } from './phrases.js';
 import { describeFailure } from '../failures.js';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -38,17 +42,45 @@ export function createWebServer(getPhrase: () => Promise<Newsletter | null>) {
   });
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  // One in-flight request and short cache avoid repeated Gmail calls on page reload.
+  const host = '127.0.0.1';
+  const port = 3000;
+  const source = process.env.PHRASE_SOURCE ?? 'gmail';
+  if (!['gmail','firestore'].includes(source)) throw new Error('PHRASE_SOURCE inválida.');
+  const today = () => gmailConfig().editionDate;
+  let close: () => Promise<void>;
+  let read: () => Promise<Newsletter | null>;
+  if (source === 'firestore') {
+    if (!process.env.GOOGLE_CLOUD_PROJECT) throw new Error('Configure GOOGLE_CLOUD_PROJECT.');
+    const db = new Firestore({ projectId: process.env.GOOGLE_CLOUD_PROJECT });
+    read = firestorePhraseReader(db, process.env.CLOUD_JOB_KEY ?? 'daily-email', today);
+    close = () => db.terminate();
+  } else {
+    await mkdir('data', { recursive: true, mode: 0o700 });
+    const db = openHistory('data/history.sqlite');
+    read = localPhraseReader(db, async () => findNewsletter(createMailbox(await authorize()), gmailConfig()), today);
+    close = async () => db.close();
+  }
   let cached: Promise<Newsletter | null> | undefined;
   let expires = 0;
+  let cachedDate = '';
   const server = createWebServer(async () => {
-    if (!cached || Date.now() >= expires) {
+    const date = today();
+    if (!cached || Date.now() >= expires || cachedDate !== date) {
+      cachedDate = date;
       expires = Infinity;
-      cached = (async () => (await findNewsletter(createMailbox(await authorize()), gmailConfig()))?.newsletter ?? null)();
+      cached = read();
       void cached.then(() => { expires = Date.now() + 30000; }, () => { expires = 0; });
     }
     return cached;
   });
-  server.on('error', () => { console.error('Não foi possível abrir a página: verifique se a porta 3000 já está ocupada.'); process.exitCode = 1; });
-  server.listen(3000, '127.0.0.1', () => console.log('Página disponível em http://127.0.0.1:3000'));
+  let closing = false;
+  const shutdown = () => {
+    if (closing) return;
+    closing = true;
+    server.close(() => { void close(); });
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+  server.on('error', () => { console.error('Não foi possível abrir a página: verifique a configuração e a porta.'); process.exitCode = 1; void close(); });
+  server.listen(port, host, () => console.log(`Página disponível em http://${host}:${port}`));
 }
