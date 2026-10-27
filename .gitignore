@@ -14,3 +14,9 @@ client_secret*.json
 
 # Local cloud configuration (recipient addresses)
 deploy/google-cloud/env.yaml
+
+# Local emulator output
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/

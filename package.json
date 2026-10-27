@@ -25,7 +25,8 @@
     "cloud:run": "node --import tsx src/cloud-cli.ts",
     "cloud:preview": "node --import tsx src/cloud-cli.ts --preview",
     "cloud:status": "node --import tsx src/cloud-cli.ts --status",
-    "deploy:prepare": "node --import tsx src/deploy-cli.ts"
+    "deploy:prepare": "node --import tsx src/deploy-cli.ts",
+    "test:integration": "npx --yes firebase-tools@15.34.1 emulators:exec --only firestore --project demo-agoniados-tests --config tests/integration/firebase.json \"node --import tsx --test tests/integration/*.test.ts\""
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.3.1",

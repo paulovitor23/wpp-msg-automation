@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import type { DatabaseSync } from 'node:sqlite';
-import { FieldPath, type Firestore } from '@google-cloud/firestore';
+import { type Firestore } from '@google-cloud/firestore';
 import type { Newsletter } from '../newsletter/types.js';
 import { validate } from '../newsletter/validate.js';
 
@@ -46,7 +46,7 @@ export function firestorePhraseReader(db: Firestore, namespace: string, today: (
   return async (): Promise<PhraseView | null> => {
     const date = today();
     const days = await db.collection('automations').doc(namespace).collection('days')
-      .where(FieldPath.documentId(), '<=', date).orderBy(FieldPath.documentId(), 'desc').limit(30).get();
+      .where('newsletter.editionDate', '<=', date).orderBy('newsletter.editionDate', 'desc').limit(1).get();
     for (const day of days.docs) {
       const phrase = day.get('newsletter');
       if (phrase) return view(publicPhrase(phrase, date), date);
