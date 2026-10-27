@@ -24,7 +24,8 @@
     "email:status": "node --import tsx src/status-cli.ts",
     "cloud:run": "node --import tsx src/cloud-cli.ts",
     "cloud:preview": "node --import tsx src/cloud-cli.ts --preview",
-    "cloud:status": "node --import tsx src/cloud-cli.ts --status"
+    "cloud:status": "node --import tsx src/cloud-cli.ts --status",
+    "deploy:prepare": "node --import tsx src/deploy-cli.ts"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.3.1",
