@@ -308,3 +308,12 @@ O visual Frase dos Agoniados foi atualizado para leitura em desktop/celular. A p
 | `WEB_PASSWORD` | Senha compartilhada; obrigatória com 16+ caracteres para acesso remoto. Usuário: `agoniados`. |
 
 A integração contínua em `.github/workflows/checks.yml` executa testes e TypeScript no Node 24, sem contas reais. Testes simulados cobrem histórico, concorrência, falhas, autenticação da página e proteção dos dados privados. A configuração de Google Cloud, Docker e entrega real precisa ser validada separadamente conforme o checklist de implantação.
+
+## Preparação e diagnóstico do deploy
+
+- `npm run deploy:prepare -- --project SEU_PROJECT_ID`: gera configurações privadas e scripts de provisionamento/publicação em `data/deploy`, com envio desabilitado. Não cria recursos automaticamente.
+- `npm run cloud:status -- --date YYYY-MM-DD`: consulta Firestore sem ler ou enviar Gmail; requer `GOOGLE_CLOUD_PROJECT` e credenciais Google de leitura.
+- `npm run test:integration`: testa transações com o emulador local (Java 21, Node 24).
+- `npm run test:container`: constrói e testa a imagem local, sem rede externa durante o teste (Docker em execução).
+
+Projeto ausente, envio desabilitado e token OAuth inválido agora têm diagnósticos específicos, sem expor respostas brutas do provedor. Veja o [roteiro atualizado](deploy/google-cloud/README.md) antes de executar os scripts gerados.

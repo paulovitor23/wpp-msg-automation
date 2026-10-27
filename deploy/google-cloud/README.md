@@ -19,7 +19,7 @@ As reservas são transações Firestore. Apenas uma execução pode processar o 
 
 Se o Gmail aceitar a mensagem mas a gravação do resultado falhar, o resultado permanece incerto. Confira Enviados e os documentos antes de qualquer correção. **Não apague reservas nem mude CLOUD_JOB_KEY para forçar reenvio.** Nesta versão, recuperação de envios incertos exige conferência e intervenção manual; não existe comando automático de recuperação na nuvem.
 
-O Cloud Logging recebe resultados estruturados sem tokens ou corpo da mensagem. Configure um alerta para `severity>=WARNING` no job se quiser notificações; nenhum canal de alerta é criado por este repositório. `npm run email:status` consulta apenas o SQLite local; para nuvem consulte Firestore e os logs.
+O Cloud Logging recebe resultados estruturados sem tokens ou corpo da mensagem. Configure um alerta para `severity>=WARNING` no job se quiser notificações; nenhum canal de alerta é criado por este repositório. `npm run email:status` consulta apenas o SQLite local; para nuvem use `npm run cloud:status` ou consulte Firestore e os logs.
 
 ## Antes de publicar
 
@@ -96,7 +96,7 @@ Primeiro execute uma prévia, sem enviar nem modificar o Firestore:
 gcloud run jobs execute agoniados-email --region="$REGION" --args=--import,tsx,src/cloud-cli.ts,--preview --wait
 ```
 
-A prévia verifica autorização de envio e leitura da newsletter; informa apenas disponibilidade, data e quantidade de destinatários. **Não valida acesso ao Firestore.** As transações devem ser verificadas em ambiente de teste antes de ativar destinatários reais. Os testes locais usam serviços simulados.
+A prévia verifica autorização de envio e leitura da newsletter; informa apenas disponibilidade, data e quantidade de destinatários. **Não valida acesso ao Firestore.** Execute também `npm run test:integration` para validar as transações no emulador e confira as permissões do projeto antes de ativar destinatários reais.
 
 ## 4. Ativação e agendamento
 
@@ -136,7 +136,7 @@ Referências: [agendamento de jobs](https://docs.cloud.google.com/run/docs/execu
 
 ## Página para os três participantes
 
-A mesma imagem inclui a página. Um **serviço Cloud Run separado** lê as frases do Firestore, sem token do Gmail e sem permissão de envio. Se a edição de hoje não estiver disponível, mostra a última frase encontrada entre os 30 registros diários mais recentes, com data e aviso. Não fornece documentos de envio ou endereços pela API.
+A mesma imagem inclui a página. Um **serviço Cloud Run separado** lê as frases do Firestore, sem token do Gmail e sem permissão de envio. Se a edição de hoje não estiver disponível, mostra a última frase salva até a data atual, com data e aviso. Não fornece documentos de envio ou endereços pela API.
 
 Crie uma identidade somente de leitura e um secret com senha aleatória. Execute a geração de senha em seu computador e guarde a senha em um gerenciador para compartilhar diretamente com os dois participantes (não no Git):
 
@@ -168,7 +168,7 @@ A conta `datastore.viewer` pode ler todo o Firestore desse projeto; o código li
 - [ ] Projeto/faturamento, APIs, Firestore e contas de serviço configurados.
 - [ ] OAuth adequado para operação contínua e secrets publicados.
 - [ ] Imagem construída com sucesso e prévia do Gmail validada.
-- [ ] Transações verificadas em Firestore de teste/emulador antes de envio real (os testes do repositório simulam o SDK).
+- [ ] Transações verificadas em Firestore de teste/emulador antes de envio real (`npm run test:integration`).
 - [ ] Agendador local/VPS parado; transição em um dia ainda não enviado.
 - [ ] Job habilitado e Scheduler criado.
 - [ ] Primeiro envio recebido individualmente pelos três e registrado no Firestore.
@@ -179,3 +179,65 @@ A conta `datastore.viewer` pode ler todo o Firestore desse projeto; o código li
 A validação local não comprova permissões IAM, faturamento, entrega real, construção da imagem ou disponibilidade do serviço publicado. Esses itens exigem a sua configuração Google e verificação após publicação.
 
 A imagem remove `whatsapp-web.js` e `qrcode-terminal` após a instalação; o código de envio e a página não os utilizam. Os alertas pendentes da árvore WhatsApp continuam restritos à instalação local.
+
+## Gerar configuração e scripts de deploy
+
+Caminho recomendado para preparar uma instalação nova. Requer Node 24 e `EMAIL_RECIPIENTS` no `.env`; este comando é local e não acessa o Google:
+
+```sh
+npm run deploy:prepare -- --project SEU_PROJECT_ID --region us-central1
+```
+
+Cria `data/deploy/` (ignorado pelo Git), com arquivos privados:
+
+- `worker-env.yaml`: projeto, destinatários e envio **desabilitado**.
+- `web-env.yaml`: página via Firestore; não contém token Gmail.
+- `web-password.txt`: senha aleatória, não exibida no terminal.
+- `provision.sh`: ativa APIs e cria banco, identidades, permissões, secrets e repositório da imagem.
+- `publish.sh`: constrói a imagem e publica job/página. O job permanece desabilitado pelo YAML inicial.
+- `activate.sh`: habilita envio e cria o Scheduler, exigindo confirmação explícita de que o envio local foi parado.
+
+O gerador valida projeto/região/destinatários e recusa sobrescrever uma configuração existente. A senha não é rotacionada silenciosamente. Os arquivos de shell devem ser revisados antes de executar. O provisionamento usa a localização informada para o Firestore, decisão que deve ser tomada antes de criar o banco.
+
+Depois de instalar/autenticar o `gcloud`, criar o projeto, vincular faturamento e autorizar Gmail com `npm run email:auth`:
+
+```sh
+bash data/deploy/provision.sh
+bash data/deploy/publish.sh
+```
+
+**O provisionamento é para recursos novos:** se algo já existir, ele interrompe. Em erro parcial, confira quais recursos foram criados e continue pelas etapas manuais acima; não exclua banco, secrets ou histórico para repetir o script. O script cria a identidade `agoniados-build`, concede escrita no repositório de imagens e permissões de logs/leitura do código no Storage. A conta que executa os scripts precisa poder criar recursos, alterar IAM e atuar como essas identidades (`iam.serviceAccounts.actAs`). O papel de leitura do Storage é concedido no projeto; use um projeto dedicado ou restrinja-o ao bucket de código após configurá-lo.
+
+Confira a prévia, o acesso à página e o histórico. Só depois, em um dia ainda não enviado localmente:
+
+```sh
+bash data/deploy/activate.sh --confirm-local-stopped
+```
+
+Isso cria recursos capazes de gerar cobrança e habilita e-mails reais nos horários agendados. O gerador não executa esses scripts. OAuth, faturamento, alertas de orçamento e canal de notificação continuam sendo configurações da sua conta.
+
+## Consultar o histórico da nuvem
+
+```sh
+GOOGLE_CLOUD_PROJECT=SEU_PROJECT_ID npm run cloud:status
+GOOGLE_CLOUD_PROJECT=SEU_PROJECT_ID npm run cloud:status -- --date 2026-10-26
+```
+
+É somente leitura. Não precisa de `EMAIL_RECIPIENTS`, token Gmail ou envio habilitado; precisa de credenciais Google para Firestore (`gcloud auth application-default login` localmente ou identidade do Cloud Run). Mostra estado diário, tentativas e resultados por destinatário, sem corpo da newsletter. Use `CLOUD_JOB_KEY` se a automação tiver outro identificador. Não confunda com `email:status`, que continua lendo apenas o SQLite.
+
+## Testes de integração e imagem
+
+```sh
+npm test
+npm run typecheck
+# Java 21 e Node 24; baixa o CLI Firebase fixado e o emulador na primeira execução:
+npm run test:integration
+# Docker em execução:
+npm run test:container
+```
+
+A integração executa o SDK oficial contra Firestore local, usando somente o projeto `demo-agoniados-tests`. Recusa iniciar sem `FIRESTORE_EMULATOR_HOST` em loopback, cria registros temporários em namespaces próprios e remove apenas esses registros. Testa reservas concorrentes, reinício, deduplicação, falha de gravação após envio simulado, status e leitura da frase.
+
+O teste da imagem constrói `agoniados-test` e verifica HTML, API, senha, bloqueio de arquivos privados e ausência do WhatsApp, sem rede externa no container. Ele não envia mensagens nem publica imagens. O GitHub Actions executa testes unitários, integração com Java 21 e teste Docker em jobs separados. A existência do workflow não comprova execução bem-sucedida no GitHub antes do push.
+
+A configuração de build usa uma identidade dedicada e `CLOUD_LOGGING_ONLY`, conforme a [documentação oficial de contas de serviço do Cloud Build](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts).
