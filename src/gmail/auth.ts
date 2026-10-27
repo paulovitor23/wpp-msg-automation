@@ -1,3 +1,4 @@
+import { AuthorizationSetupError } from '../failures.js';
 import { authenticate } from '@google-cloud/local-auth';
 import { OAuth2Client } from 'google-auth-library';
 import { mkdir, readFile, writeFile, chmod } from 'node:fs/promises';
@@ -11,9 +12,9 @@ export async function authorize(interactive = false, allowSend = false): Promise
   if (!interactive) {
     let saved;
     try { saved = JSON.parse(await readFile(tokenPath(), 'utf8')); }
-    catch { throw new Error('Autorização ausente ou inválida. Execute npm run gmail:auth.'); }
-    if (!saved.client_id || !saved.client_secret || !saved.refresh_token) {
-      throw new Error('Autorização incompleta. Execute npm run gmail:auth novamente.');
+    catch { throw new AuthorizationSetupError('Autorização ausente ou inválida. Execute npm run gmail:auth.'); }
+    if (!saved || ![saved.client_id, saved.client_secret, saved.refresh_token].every(value => typeof value === 'string' && value.trim().length > 0)) {
+      throw new AuthorizationSetupError('Autorização incompleta. Execute npm run gmail:auth novamente.');
     }
     const client = new OAuth2Client(saved.client_id, saved.client_secret);
     client.setCredentials({ refresh_token: saved.refresh_token });
@@ -21,13 +22,13 @@ export async function authorize(interactive = false, allowSend = false): Promise
   }
   let credentials;
   try { credentials = JSON.parse(await readFile(credentialsPath, 'utf8')).installed; }
-  catch { throw new Error('Salve as credenciais OAuth de aplicativo Desktop em data/credentials.json.'); }
+  catch { throw new AuthorizationSetupError('Salve as credenciais OAuth de aplicativo Desktop em data/credentials.json.'); }
   if (!credentials?.client_id || !credentials?.client_secret) {
-    throw new Error('As credenciais devem ser do tipo Desktop, não Web.');
+    throw new AuthorizationSetupError('As credenciais devem ser do tipo Desktop, não Web.');
   }
   await chmod(credentialsPath, 0o600);
   const client = await authenticate({ scopes: allowSend ? [scope, 'https://www.googleapis.com/auth/gmail.send'] : [scope], keyfilePath: credentialsPath });
-  if (!client.credentials.refresh_token) throw new Error('Google não forneceu acesso offline. Autorize novamente.');
+  if (!client.credentials.refresh_token) throw new AuthorizationSetupError('Google não forneceu acesso offline. Autorize novamente.');
   await mkdir(path.dirname(tokenPath()), { recursive: true, mode: 0o700 });
   await writeFile(tokenPath(), JSON.stringify({
     client_id: credentials.client_id, client_secret: credentials.client_secret,

@@ -1,7 +1,11 @@
+export class ConfigurationError extends Error {}
+export class AuthorizationSetupError extends Error {}
 export class NewsletterFormatError extends Error {}
 
 // Only return controlled messages: provider errors may contain tokens and email bodies.
 export function describeFailure(error: unknown) {
+  if (error instanceof ConfigurationError) return { code: 'configuration_error', retryable: false, message: error.message };
+  if (error instanceof AuthorizationSetupError) return { code: 'auth_error', retryable: false, message: error.message };
   const e = error as { code?: unknown; message?: string; response?: { status?: number; data?: { error?: unknown } } } | null;
   const status = e?.response?.status ?? Number(e?.code);
   const provider = e?.response?.data?.error;

@@ -13,8 +13,10 @@ test('reads a mounted OAuth token without changing it or accessing Google',async
     await writeFile(process.env.GMAIL_TOKEN_PATH,JSON.stringify({client_id:'test-id',client_secret:'test-secret',refresh_token:'test-refresh'}));
     const client=await authorize();
     assert.equal(client.credentials.refresh_token,'test-refresh');
-    await writeFile(process.env.GMAIL_TOKEN_PATH,'{}');
-    await assert.rejects(authorize(),/incompleta/);
+    for (const value of [{}, null, {client_id: {}, client_secret: 'secret', refresh_token: 123}]) {
+      await writeFile(process.env.GMAIL_TOKEN_PATH,JSON.stringify(value));
+      await assert.rejects(authorize(),/incompleta/);
+    }
   } finally {
     if(previous===undefined) delete process.env.GMAIL_TOKEN_PATH;else process.env.GMAIL_TOKEN_PATH=previous;
     await rm(directory,{recursive:true});
