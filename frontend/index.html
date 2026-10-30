@@ -1,37 +1,55 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#faf8f2"><meta name="description" content="Uma frase, uma pausa e um novo olhar para começar o dia.">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#faf8f2">
+  <meta name="description" content="Uma frase, uma pausa e um novo olhar para começar o dia.">
   <title>Frase dos Agoniados</title>
-  <link rel="stylesheet" href="/styles.css"><script src="/app.js" defer></script>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
 </head>
-<body>
-  <a class="skip-link" href="#reading">Ir para a frase</a>
-  <header class="nav">
-    <a class="brand" href="/"><span class="sun" aria-hidden="true">☀</span> Frase dos Agoniados</a>
-    <span class="nav-label">uma boa manhã começa aqui</span>
-    <div class="friends" aria-label="Feito para nós três"><span>PV</span><span>EB</span><span>AF</span></div>
-  </header>
-  <main>
-    <section class="reading" aria-labelledby="title" aria-busy="true" id="reading">
-      <div class="orbit" aria-hidden="true"></div>
-      <p class="edition"><span aria-hidden="true">●</span> <time id="date">FRASE DO DIA</time></p>
-      <p class="eyebrow">UMA PAUSA PARA COMEÇAR BEM</p>
-      <h1 id="title">Poucas palavras.<br>Um novo olhar.</h1>
-      <p id="message" class="message">Buscando a inspiração de hoje…</p>
-      <p class="source">Uma reflexão para acompanhar o seu café. <span>Fonte: the news.</span></p>
-      <p id="status" class="status" role="status" aria-live="polite"></p>
-      <div class="actions">
-        <button id="copy" disabled><span aria-hidden="true">▢</span> Copiar frase</button>
-        <button id="reload" class="secondary">Atualizar <span aria-hidden="true">↻</span></button>
-      </div>
-    </section>
-    <aside class="note">
-      <div><p class="eyebrow">PARA CONVERSAR ENTRE NÓS</p><h2>Qual é a única coisa que faria seu dia valer a pena hoje?</h2></div>
-      <span class="note-sun" aria-hidden="true">✳</span>
-    </aside>
-  </main>
-  <footer><span>Menos pressa. Mais intenção.</span><span>Feito para nós três.<small>Projeto pessoal, sem afiliação ao the news.</small></span></footer>
+<body class="font-sans antialiased">
+  <a href="#reading" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-10 focus:bg-base-100 focus:p-4">Ir para a frase</a>
+  <div class="mx-auto max-w-6xl px-5 sm:px-10">
+    <header class="navbar min-h-24 gap-4 border-b border-base-300 px-0">
+      <a href="/" class="inline-flex items-center gap-3 font-serif text-xl font-bold tracking-tight sm:text-2xl" aria-label="Frase dos Agoniados, início">
+        <svg class="size-8 shrink-0 text-neutral" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="7" fill="currentColor"/><path d="M16 1v5m0 20v5M1 16h5m20 0h5M5.4 5.4l3.5 3.5m14.2 14.2 3.5 3.5M5.4 26.6l3.5-3.5M23.1 8.9l3.5-3.5" stroke="currentColor" stroke-width="1.5"/></svg>
+        Frase dos Agoniados
+      </a>
+      <span class="ml-auto hidden text-xs text-neutral md:block">um pequeno ritual, todos os dias</span>
+      <span class="ml-auto hidden border-l border-base-300 pl-5 text-xs text-neutral sm:block md:ml-1">feito para nós três</span>
+    </header>
+    <main>
+      <section id="reading" aria-labelledby="title" aria-busy="true" tabindex="-1" class="mx-auto max-w-4xl py-12 text-center sm:py-16 lg:py-20">
+        <div class="mb-9 flex flex-col items-center gap-4 sm:mb-12">
+          <time id="date" class="text-[11px] leading-relaxed font-medium tracking-[0.16em] text-neutral uppercase">FRASE DO DIA</time>
+          <span id="edition-label" class="badge border-base-300 bg-base-200 px-4 py-3 text-[10px] tracking-widest">UMA PAUSA PARA COMEÇAR BEM</span>
+        </div>
+        <h1 id="title" class="mx-auto max-w-4xl font-serif text-[clamp(2.6rem,6vw,5rem)] leading-[1.08] font-normal tracking-[-0.045em] wrap-break-word">Uma boa manhã começa<br>com uma boa ideia.</h1>
+        <p id="message" class="mx-auto mt-7 max-w-2xl text-lg leading-[1.8] sm:mt-9 sm:text-xl">Buscando a inspiração de hoje…</p>
+        <p class="mt-7 text-xs leading-relaxed text-neutral">Conteúdo: the news <span aria-hidden="true">·</span> Uma reflexão para acompanhar seu café.</p>
+        <p id="notice" class="alert mx-auto mt-7 max-w-xl border-base-300 text-left text-sm leading-relaxed shadow-none" hidden></p>
+        <div class="mt-9 flex flex-col items-stretch justify-center gap-3 min-[360px]:flex-row min-[360px]:items-center sm:mt-10">
+          <button id="copy" type="button" class="btn btn-primary min-h-12 px-6" disabled>
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+            <span id="copy-label">Copiar frase</span>
+          </button>
+          <button id="reload" type="button" class="btn min-h-12 border-base-300 bg-base-100 px-6"><span id="reload-label">Atualizar</span><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.2 8a8 8 0 0 1 13-2L20 9M4 15l1.8 3A8 8 0 0 0 19 16"/></svg></button>
+        </div>
+        <p id="status" role="status" aria-live="polite" aria-atomic="true" class="mx-auto mt-4 min-h-6 max-w-xl text-sm leading-relaxed text-neutral"></p>
+      </section>
+      <aside class="border-t border-base-300 py-8 sm:py-10" aria-labelledby="reflection-title">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_2fr] sm:items-start sm:gap-10">
+          <p class="text-[10px] leading-loose font-semibold tracking-[0.18em] text-neutral uppercase">PARA CONVERSAR ENTRE NÓS</p>
+          <h2 id="reflection-title" class="max-w-xl font-serif text-2xl leading-snug tracking-tight sm:text-3xl">Qual é a única coisa que faria seu dia valer a pena hoje?</h2>
+        </div>
+      </aside>
+    </main>
+    <footer class="flex flex-col gap-3 border-t border-base-300 py-6 text-[11px] leading-relaxed text-neutral sm:flex-row sm:justify-between">
+      <span>Menos pressa. Mais intenção.</span>
+      <span>Projeto pessoal, sem afiliação ao the news.</span>
+    </footer>
+  </div>
 </body>
 </html>

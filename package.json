@@ -27,7 +27,9 @@
     "cloud:status": "node --import tsx src/cloud-cli.ts --status",
     "deploy:prepare": "node --import tsx src/deploy-cli.ts",
     "test:integration": "npx --yes firebase-tools@15.34.1 emulators:exec --only firestore --project demo-agoniados-tests --config tests/integration/firebase.json \"node --import tsx --test tests/integration/*.test.ts\"",
-    "test:container": "node scripts/test-container.mjs"
+    "test:container": "node scripts/test-container.mjs",
+    "build:web": "tailwindcss -i frontend/styles/source.css -o frontend/styles.css --minify",
+    "preweb": "npm run build:web"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.3.1",
@@ -42,10 +44,13 @@
     "whatsapp-web.js": "^1.34.7"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
     "@types/luxon": "^3.7.6",
     "@types/mailparser": "^3.9.0",
     "@types/node": "^26.6.4",
     "@types/qrcode-terminal": "^0.12.2",
+    "daisyui": "^5.7.50",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },

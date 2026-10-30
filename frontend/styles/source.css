@@ -1,0 +1,39 @@
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "../app.js";
+@plugin "daisyui" {
+  themes: light --default;
+  include: properties, rootcolor, svg, button, badge, navbar, alert;
+  logs: false;
+}
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-base-100: #faf8f2;
+  --color-base-200: #f0ebdf;
+  --color-base-300: #ded7c9;
+  --color-base-content: #24241f;
+  --color-primary: #ffcf48;
+  --color-primary-content: #332811;
+  --color-neutral: #4b493f;
+  --color-neutral-content: #faf8f2;
+  --color-info: #e9edf0;
+  --color-info-content: #344957;
+  --color-warning: #f7ebc8;
+  --color-warning-content: #735218;
+  --color-error: #fbe7e4;
+  --color-error-content: #8b2f26;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --depth: 0;
+  --noise: 0;
+}
+@theme {
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+}
+@layer base {
+  [hidden] { display: none !important; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 3px solid var(--color-neutral); outline-offset: 5px; }
+}

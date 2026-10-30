@@ -11,7 +11,7 @@ test('web serves phrase, protects local files and hides provider errors', async 
   const base = `http://127.0.0.1:${address.port}`;
   try {
     assert.deepEqual(await (await fetch(base+'/api/phrase')).json(), phrase);
-    assert.match(await (await fetch(base)).text(), /uma boa manhã/);
+    assert.match(await (await fetch(base)).text(), /Frase dos Agoniados/);
     assert.equal((await fetch(base+'/data/credentials.json')).status, 404);
     assert.equal((await fetch(base+'/api/phrase',{method:'POST'})).status, 405);
     fail = true;
