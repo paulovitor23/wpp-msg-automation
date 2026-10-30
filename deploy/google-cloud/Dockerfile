@@ -7,5 +7,6 @@ RUN npm ci --ignore-scripts --no-audit --no-fund \
     && npm cache clean --force
 COPY src ./src
 COPY frontend ./frontend
+RUN npm run build:web
 USER node
 CMD ["node", "--import", "tsx", "src/cloud-cli.ts"]
