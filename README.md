@@ -81,7 +81,7 @@ Organização:
 - `src/web/server.ts`: servidor local e endpoint `/api/phrase`, reutilizando a integração Gmail.
 - `tests/web.test.ts`: teste do endpoint e isolamento dos arquivos privados.
 
-Sem framework ou dependência nova. O servidor escuta apenas em `127.0.0.1` e serve uma lista explícita de arquivos públicos; credenciais nunca são servidas. O padrão é acesso local; acesso remoto exige `WEB_PASSWORD` com no mínimo 16 caracteres e HTTPS na hospedagem. A referência visual não implica afiliação ao the news.
+HTML e JavaScript nativos, com Tailwind CSS 4 e daisyUI 5 compilados localmente. O servidor escuta apenas em `127.0.0.1` e serve uma lista explícita de arquivos públicos; credenciais nunca são servidas. O padrão é acesso local; acesso remoto exige `WEB_PASSWORD` com no mínimo 16 caracteres e HTTPS na hospedagem. A referência visual não implica afiliação ao the news.
 
 ## Extração local e validação
 
@@ -317,3 +317,15 @@ A integração contínua em `.github/workflows/checks.yml` executa testes e Type
 - `npm run test:container`: constrói e testa a imagem local, sem rede externa durante o teste (Docker em execução).
 
 Projeto ausente, envio desabilitado e token OAuth inválido agora têm diagnósticos específicos, sem expor respostas brutas do provedor. Veja o [roteiro atualizado](deploy/google-cloud/README.md) antes de executar os scripts gerados.
+
+
+## Estilos e componentes da página
+
+O front-end segue a skill daisyUI adicionada em `.agents/skills/daisyui/`:
+
+- `frontend/index.html`: marcação semântica e componentes daisyUI.
+- `frontend/styles/source.css`: tema creme/amarelo, tipografia e configuração Tailwind/daisyUI.
+- `frontend/styles.css`: CSS compilado, versionado para execução direta; não edite manualmente.
+- `frontend/app.js`: carregamento, atualização e cópia; uma falha ao atualizar preserva a frase já carregada e o aviso de edição anterior.
+
+`npm run build:web` recompila os estilos. `npm run web` faz isso automaticamente antes de iniciar. Docker e CI também compilam o CSS. Não há CDN, fontes remotas ou bibliotecas executadas no navegador. Testes do front-end cobrem recuperação de erros, conteúdo inválido, cópia com fonte e preservação da leitura.
